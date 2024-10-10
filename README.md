@@ -6,9 +6,7 @@ d-Simlex-EASE (ds-Ease) is a new Class-Incremental Learning technique that combi
 - [Dependencies](#dependencies)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Contributing](#contributing)
 - [License](#license)
-- [Contact](#contact)
 
 ## Dependencies
 - `Python 3.10`
