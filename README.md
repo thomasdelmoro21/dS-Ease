@@ -51,5 +51,5 @@ d-Simlex-EASE (ds-Ease) is a new Class-Incremental Learning technique that combi
    ```
 
 ## License
-This project is licensed under the MIT License. See the LICENSE file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
    
