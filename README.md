@@ -11,6 +11,6 @@ d-Simlex-EASE (ds-Ease) is a new Class-Incremental Learning technique that combi
 - `tqdm`
 - `easydict`
 
-**Note**: A more recent version of Python can lead to library incompatibilities.
+**Note**: A more recent Python version can lead to library incompatibilities.
 
 ## EASE
