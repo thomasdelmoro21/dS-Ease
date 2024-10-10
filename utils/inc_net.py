@@ -3,7 +3,6 @@ import logging
 import torch
 from torch import nn
 from backbone.linears import SimpleLinear, SplitCosineLinear, CosineLinear, EaseCosineLinear, SimpleContinualLinear
-from backbone.prompt import CodaPrompt
 import timm
 
 def get_backbone(args, pretrained=False):
