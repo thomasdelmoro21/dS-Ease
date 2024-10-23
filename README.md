@@ -51,7 +51,7 @@ Class-Incremental Learning often suffers from catastrophic forgetting, where the
    ```
 2. Start Python script:
    ```bash
-   python main.py
+   python main.py --config ./exps/dsease.json
    ```
 
 ## EASE

@@ -167,7 +167,7 @@ def get_backbone(args, pretrained=False):
             return model
     elif '_ease' in name:
         ffn_num = args["ffn_num"]
-        if args["model_name"] == "ease" :
+        if args["model_name"] == "ease" or args["model_name"] == "dsease":
             from backbone import vit_ease
             from easydict import EasyDict
             tuning_config = EasyDict(
@@ -267,681 +267,6 @@ class BaseNet(nn.Module):
         return self
 
 
-class IncrementalNet(BaseNet):
-    def __init__(self, args, pretrained, gradcam=False):
-        super().__init__(args, pretrained)
-        self.gradcam = gradcam
-        if hasattr(self, "gradcam") and self.gradcam:
-            self._gradcam_hooks = [None, None]
-            self.set_gradcam_hook()
-
-    def update_fc(self, nb_classes):
-        fc = self.generate_fc(self.feature_dim, nb_classes)
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            bias = copy.deepcopy(self.fc.bias.data)
-            fc.weight.data[:nb_output] = weight
-            fc.bias.data[:nb_output] = bias
-
-        del self.fc
-        self.fc = fc
-
-    def weight_align(self, increment):
-        weights = self.fc.weight.data
-        newnorm = torch.norm(weights[-increment:, :], p=2, dim=1)
-        oldnorm = torch.norm(weights[:-increment, :], p=2, dim=1)
-        meannew = torch.mean(newnorm)
-        meanold = torch.mean(oldnorm)
-        gamma = meanold / meannew
-        print("alignweights,gamma=", gamma)
-        self.fc.weight.data[-increment:, :] *= gamma
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = SimpleLinear(in_dim, out_dim)
-        return fc
-
-    def forward(self, x):
-        if self.model_type == 'cnn':
-            x = self.backbone(x)
-            out = self.fc(x["features"])
-            out.update(x)
-        else:
-            x = self.backbone(x)
-            out = self.fc(x)
-            out.update({"features": x})
-
-        if hasattr(self, "gradcam") and self.gradcam:
-            out["gradcam_gradients"] = self._gradcam_gradients
-            out["gradcam_activations"] = self._gradcam_activations
-        return out
-
-    def unset_gradcam_hook(self):
-        self._gradcam_hooks[0].remove()
-        self._gradcam_hooks[1].remove()
-        self._gradcam_hooks[0] = None
-        self._gradcam_hooks[1] = None
-        self._gradcam_gradients, self._gradcam_activations = [None], [None]
-
-    def set_gradcam_hook(self):
-        self._gradcam_gradients, self._gradcam_activations = [None], [None]
-
-        def backward_hook(module, grad_input, grad_output):
-            self._gradcam_gradients[0] = grad_output[0]
-            return None
-
-        def forward_hook(module, input, output):
-            self._gradcam_activations[0] = output
-            return None
-
-        self._gradcam_hooks[0] = self.backbone.last_conv.register_backward_hook(
-            backward_hook
-        )
-        self._gradcam_hooks[1] = self.backbone.last_conv.register_forward_hook(
-            forward_hook
-        )
-
-
-class CosineIncrementalNet(BaseNet):
-    def __init__(self, args, pretrained, nb_proxy=1):
-        super().__init__(args, pretrained)
-        self.nb_proxy = nb_proxy
-
-    def update_fc(self, nb_classes, task_num):
-        fc = self.generate_fc(self.feature_dim, nb_classes)
-        if self.fc is not None:
-            if task_num  ==  1:
-                fc.fc1.weight.data = self.fc.weight.data
-                fc.sigma.data = self.fc.sigma.data
-            else:
-                prev_out_features1 = self.fc.fc1.out_features
-                fc.fc1.weight.data[:prev_out_features1] = self.fc.fc1.weight.data
-                fc.fc1.weight.data[prev_out_features1:] = self.fc.fc2.weight.data
-                fc.sigma.data = self.fc.sigma.data
-
-        del self.fc
-        self.fc = fc
-
-    def generate_fc(self, in_dim, out_dim):
-        if self.fc is None:
-            fc = CosineLinear(in_dim, out_dim, self.nb_proxy, to_reduce=True)
-        else:
-            prev_out_features = self.fc.out_features // self.nb_proxy
-            # prev_out_features = self.fc.out_features
-            fc = SplitCosineLinear(
-                in_dim, prev_out_features, out_dim - prev_out_features, self.nb_proxy
-            )
-
-        return fc
-
-class DERNet(nn.Module):
-    def __init__(self, args, pretrained):
-        super(DERNet, self).__init__()
-        self.backbone_type = args["backbone_type"]
-        self.backbones = nn.ModuleList()
-        self.pretrained = pretrained
-        self.out_dim = None
-        self.fc = None
-        self.aux_fc = None
-        self.task_sizes = []
-        self.args = args
-
-        if 'resnet' in args['backbone_type']:
-            self.model_type = 'cnn'
-        else:
-            self.model_type = 'vit'
-
-    @property
-    def feature_dim(self):
-        if self.out_dim is None:
-            return 0
-        return self.out_dim * len(self.backbones)
-
-    def extract_vector(self, x):
-        if self.model_type == 'cnn':
-            features = [backbone(x)["features"] for backbone in self.backbones]
-        else:
-            features = [backbone(x) for backbone in self.backbones]
-        features = torch.cat(features, 1)
-        return features
-
-    def forward(self, x):
-        if self.model_type == 'cnn':
-            features = [backbone(x)["features"] for backbone in self.backbones]
-        else:
-            features = [backbone(x) for backbone in self.backbones]
-        features = torch.cat(features, 1)
-
-        out = self.fc(features)  # {logits: self.fc(features)}
-
-        aux_logits = self.aux_fc(features[:, -self.out_dim :])["logits"]
-
-        out.update({"aux_logits": aux_logits, "features": features})
-        return out
-        """
-        {
-            'features': features
-            'logits': logits
-            'aux_logits':aux_logits
-        }
-        """
-
-    def update_fc(self, nb_classes):
-        if len(self.backbones) == 0:
-            self.backbones.append(get_backbone(self.args, self.pretrained))
-        else:
-            self.backbones.append(get_backbone(self.args, self.pretrained))
-            self.backbones[-1].load_state_dict(self.backbones[-2].state_dict())
-
-        if self.out_dim is None:
-            self.out_dim = self.backbones[-1].out_dim
-        fc = self.generate_fc(self.feature_dim, nb_classes)
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            bias = copy.deepcopy(self.fc.bias.data)
-            fc.weight.data[:nb_output, : self.feature_dim - self.out_dim] = weight
-            fc.bias.data[:nb_output] = bias
-
-        del self.fc
-        self.fc = fc
-
-        new_task_size = nb_classes - sum(self.task_sizes)
-        self.task_sizes.append(new_task_size)
-
-        self.aux_fc = self.generate_fc(self.out_dim, new_task_size + 1)
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = SimpleLinear(in_dim, out_dim)
-
-        return fc
-
-    def copy(self):
-        return copy.deepcopy(self)
-
-    def freeze(self):
-        for param in self.parameters():
-            param.requires_grad = False
-        self.eval()
-
-        return self
-
-    def freeze_backbone(self):
-        for param in self.backbones.parameters():
-            param.requires_grad = False
-        self.backbones.eval()
-
-    def weight_align(self, increment):
-        weights = self.fc.weight.data
-        newnorm = torch.norm(weights[-increment:, :], p=2, dim=1)
-        oldnorm = torch.norm(weights[:-increment, :], p=2, dim=1)
-        meannew = torch.mean(newnorm)
-        meanold = torch.mean(oldnorm)
-        gamma = meanold / meannew
-        print("alignweights,gamma=", gamma)
-        self.fc.weight.data[-increment:, :] *= gamma
-
-    def load_checkpoint(self, args):
-        checkpoint_name = f"checkpoints/finetune_{args['csv_name']}_0.pkl"
-        model_infos = torch.load(checkpoint_name)
-        assert len(self.backbones) == 1
-        self.backbones[0].load_state_dict(model_infos['backbone'])
-        self.fc.load_state_dict(model_infos['fc'])
-        test_acc = model_infos['test_acc']
-        return test_acc
-
-class SimpleCosineIncrementalNet(BaseNet):
-    def __init__(self, args, pretrained):
-        super().__init__(args, pretrained)
-
-    def update_fc(self, nb_classes, nextperiod_initialization=None):
-        fc = self.generate_fc(self.feature_dim, nb_classes).to(self._device)
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            fc.sigma.data = self.fc.sigma.data
-            if nextperiod_initialization is not None:
-                weight = torch.cat([weight, nextperiod_initialization])
-            else:
-                weight = torch.cat([weight, torch.zeros(nb_classes - nb_output, self.feature_dim).to(self._device)])
-            fc.weight = nn.Parameter(weight)
-        del self.fc
-        self.fc = fc
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = CosineLinear(in_dim, out_dim)
-        return fc
-
-
-class SimpleVitNet(BaseNet):
-    def __init__(self, args, pretrained):
-        super().__init__(args, pretrained)
-        # for RanPAC
-        self.W_rand = None
-        self.RP_dim = None
-
-    def update_fc(self, nb_classes, nextperiod_initialization=None):
-        if self.RP_dim is not None:
-            feature_dim = self.RP_dim
-        else:
-            feature_dim = self.feature_dim
-        fc = self.generate_fc(feature_dim, nb_classes).to(self._device)
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            fc.sigma.data = self.fc.sigma.data
-            if nextperiod_initialization is not None:
-                weight = torch.cat([weight, nextperiod_initialization])
-            else:
-                weight = torch.cat([weight, torch.zeros(nb_classes - nb_output, feature_dim).to(self._device)])
-            fc.weight = nn.Parameter(weight)
-        del self.fc
-        self.fc = fc
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = CosineLinear(in_dim, out_dim)
-        return fc
-
-    def extract_vector(self, x):
-        return self.backbone(x)
-
-    def forward(self, x):
-        x = self.backbone(x)
-        if self.W_rand is not None:
-            x = torch.nn.functional.relu(x @ self.W_rand)
-        out = self.fc(x)
-        out.update({"features": x})
-        return out
-
-# l2p and dualprompt
-class PromptVitNet(nn.Module):
-    def __init__(self, args, pretrained):
-        super(PromptVitNet, self).__init__()
-        self.backbone = get_backbone(args, pretrained)
-        if args["get_original_backbone"]:
-            self.original_backbone = self.get_original_backbone(args)
-        else:
-            self.original_backbone = None
-            
-    def get_original_backbone(self, args):
-        return timm.create_model(
-            args["backbone_type"],
-            pretrained=args["pretrained"],
-            num_classes=args["nb_classes"],
-            drop_rate=args["drop"],
-            drop_path_rate=args["drop_path"],
-            drop_block_rate=None,
-        ).eval()
-
-    def forward(self, x, task_id=-1, train=False):
-        with torch.no_grad():
-            if self.original_backbone is not None:
-                cls_features = self.original_backbone(x)['pre_logits']
-            else:
-                cls_features = None
-
-        x = self.backbone(x, task_id=task_id, cls_features=cls_features, train=train)
-        return x
-
-# coda_prompt
-class CodaPromptVitNet(nn.Module):
-    def __init__(self, args, pretrained):
-        super(CodaPromptVitNet, self).__init__()
-        self.args = args
-        self.backbone = get_backbone(args, pretrained)
-        self.fc = nn.Linear(768, args["nb_classes"])
-        self.prompt = CodaPrompt(768, args["nb_tasks"], args["prompt_param"])
-
-    # pen: get penultimate features  
-    def forward(self, x, pen=False, train=False):
-        if self.prompt is not None:
-            with torch.no_grad():
-                q, _ = self.backbone(x)
-                q = q[:,0,:]
-            out, prompt_loss = self.backbone(x, prompt=self.prompt, q=q, train=train)
-            out = out[:,0,:]
-        else:
-            out, _ = self.backbone(x)
-            out = out[:,0,:]
-        out = out.view(out.size(0), -1)
-        if not pen:
-            out = self.fc(out)
-        if self.prompt is not None and train:
-            return out, prompt_loss
-        else:
-            return out
-
-
-class MultiBranchCosineIncrementalNet(BaseNet):
-    def __init__(self, args, pretrained):
-        super().__init__(args, pretrained)
-        
-        # no need the backbone.
-        
-        print('Clear the backbone in MultiBranchCosineIncrementalNet, since we are using self.backbones with dual branches')
-        self.backbone=torch.nn.Identity()
-        for param in self.backbone.parameters():
-            param.requires_grad = False
-
-        self.backbones = nn.ModuleList()
-        self.args=args
-        
-        if 'resnet' in args['backbone_type']:
-            self.model_type='cnn'
-        else:
-            self.model_type='vit'
-
-    def update_fc(self, nb_classes, nextperiod_initialization=None):
-        fc = self.generate_fc(self._feature_dim, nb_classes).to(self._device)
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            fc.sigma.data = self.fc.sigma.data
-            if nextperiod_initialization is not None:
-                weight = torch.cat([weight, nextperiod_initialization])
-            else:
-                weight = torch.cat([weight, torch.zeros(nb_classes - nb_output, self._feature_dim).to(self._device)])
-            fc.weight = nn.Parameter(weight)
-        del self.fc
-        self.fc = fc
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = CosineLinear(in_dim, out_dim)
-        return fc
-    
-
-    def forward(self, x):
-        if self.model_type == 'cnn':
-            features = [backbone(x)["features"] for backbone in self.backbones]
-        else:
-            features = [backbone(x) for backbone in self.backbones]       
-
-        features = torch.cat(features, 1)
-        # import pdb; pdb.set_trace()
-        out = self.fc(features)
-        out.update({"features": features})
-        return out
-
-    
-    def construct_dual_branch_network(self, tuned_model):
-        if 'ssf' in self.args['backbone_type']:
-            newargs=copy.deepcopy(self.args)
-            newargs['backbone_type']=newargs['backbone_type'].replace('_ssf','')
-            print(newargs['backbone_type'])
-            self.backbones.append(get_backbone(newargs)) #pretrained model without scale
-        elif 'vpt' in self.args['backbone_type']:
-            newargs=copy.deepcopy(self.args)
-            newargs['backbone_type']=newargs['backbone_type'].replace('_vpt','')
-            print(newargs['backbone_type'])
-            self.backbones.append(get_backbone(newargs)) #pretrained model without vpt
-        elif 'adapter' in self.args['backbone_type']:
-            newargs=copy.deepcopy(self.args)
-            newargs['backbone_type']=newargs['backbone_type'].replace('_adapter','')
-            print(newargs['backbone_type'])
-            self.backbones.append(get_backbone(newargs)) #pretrained model without adapter
-        else:
-            self.backbones.append(get_backbone(self.args)) #the pretrained model itself
-
-        self.backbones.append(tuned_model.backbone) #adappted tuned model
-    
-        self._feature_dim = self.backbones[0].out_dim * len(self.backbones) 
-        self.fc=self.generate_fc(self._feature_dim,self.args['init_cls'])
-
-
-class FOSTERNet(nn.Module):
-    def __init__(self, args, pretrained):
-        super(FOSTERNet, self).__init__()
-        self.backbone_type = args["backbone_type"]
-        self.backbones = nn.ModuleList()
-        self.pretrained = pretrained
-        self.out_dim = None
-        self.fc = None
-        self.fe_fc = None
-        self.task_sizes = []
-        self.oldfc = None
-        self.args = args
-
-        if 'resnet' in args['backbone_type']:
-            self.model_type = 'cnn'
-        else:
-            self.model_type = 'vit'
-
-    @property
-    def feature_dim(self):
-        if self.out_dim is None:
-            return 0
-        return self.out_dim * len(self.backbones)
-
-    def extract_vector(self, x):
-        if self.model_type == 'cnn':
-            features = [backbone(x)["features"] for backbone in self.backbones]
-        else:
-            features = [backbone(x) for backbone in self.backbones]
-        features = torch.cat(features, 1)
-        return features
-
-    def forward(self, x):
-        if self.model_type == 'cnn':
-            features = [backbone(x)["features"] for backbone in self.backbones]
-        else:
-            features = [backbone(x) for backbone in self.backbones]
-        features = torch.cat(features, 1)
-        out = self.fc(features)
-        fe_logits = self.fe_fc(features[:, -self.out_dim :])["logits"]
-
-        out.update({"fe_logits": fe_logits, "features": features})
-
-        if self.oldfc is not None:
-            old_logits = self.oldfc(features[:, : -self.out_dim])["logits"]
-            out.update({"old_logits": old_logits})
-
-        out.update({"eval_logits": out["logits"]})
-        return out
-
-    def update_fc(self, nb_classes):
-        self.backbones.append(get_backbone(self.args, self.pretrained))
-        if self.out_dim is None:
-            self.out_dim = self.backbones[-1].out_dim
-        fc = self.generate_fc(self.feature_dim, nb_classes)
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            bias = copy.deepcopy(self.fc.bias.data)
-            fc.weight.data[:nb_output, : self.feature_dim - self.out_dim] = weight
-            fc.bias.data[:nb_output] = bias
-            self.backbones[-1].load_state_dict(self.backbones[-2].state_dict())
-
-        self.oldfc = self.fc
-        self.fc = fc
-        new_task_size = nb_classes - sum(self.task_sizes)
-        self.task_sizes.append(new_task_size)
-        self.fe_fc = self.generate_fc(self.out_dim, nb_classes)
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = SimpleLinear(in_dim, out_dim)
-        return fc
-
-    def copy(self):
-        return copy.deepcopy(self)
-
-    def copy_fc(self, fc):
-        weight = copy.deepcopy(fc.weight.data)
-        bias = copy.deepcopy(fc.bias.data)
-        n, m = weight.shape[0], weight.shape[1]
-        self.fc.weight.data[:n, :m] = weight
-        self.fc.bias.data[:n] = bias
-
-    def freeze(self):
-        for param in self.parameters():
-            param.requires_grad = False
-        self.eval()
-        return self
-
-    def freeze_backbone(self):
-        for param in self.backbones.parameters():
-            param.requires_grad = False
-        self.backbones.eval()
-
-    def weight_align(self, old, increment, value):
-        weights = self.fc.weight.data
-        newnorm = torch.norm(weights[-increment:, :], p=2, dim=1)
-        oldnorm = torch.norm(weights[:-increment, :], p=2, dim=1)
-        meannew = torch.mean(newnorm)
-        meanold = torch.mean(oldnorm)
-        gamma = meanold / meannew * (value ** (old / increment))
-        logging.info("align weights, gamma = {} ".format(gamma))
-        self.fc.weight.data[-increment:, :] *= gamma
-    
-    def load_checkpoint(self, args):
-        if args["init_cls"] == 50:
-            pkl_name = "{}_{}_{}_B{}_Inc{}".format( 
-                args["dataset"],
-                args["seed"],
-                args["backbone_type"],
-                0,
-                args["init_cls"],
-            )
-            checkpoint_name = f"checkpoints/finetune_{pkl_name}_0.pkl"
-        else:
-            checkpoint_name = f"checkpoints/finetune_{args['csv_name']}_0.pkl"
-        model_infos = torch.load(checkpoint_name)
-        assert len(self.backbones) == 1
-        self.backbones[0].load_state_dict(model_infos['backbone'])
-        self.fc.load_state_dict(model_infos['fc'])
-        test_acc = model_infos['test_acc']
-        return test_acc
-
-class AdaptiveNet(nn.Module):
-    def __init__(self, args, pretrained):
-        super(AdaptiveNet, self).__init__()
-        self.backbone_type = args["backbone_type"]
-        self.TaskAgnosticExtractor , _ = get_backbone(args, pretrained) #Generalized blocks
-        self.TaskAgnosticExtractor.train()
-        self.AdaptiveExtractors = nn.ModuleList() #Specialized Blocks
-        self.pretrained=pretrained
-        self.out_dim=None
-        self.fc = None
-        self.aux_fc=None
-        self.task_sizes = []
-        self.args=args
-
-    @property
-    def feature_dim(self):
-        if self.out_dim is None:
-            return 0
-        return self.out_dim*len(self.AdaptiveExtractors)
-    
-    def extract_vector(self, x):
-        base_feature_map = self.TaskAgnosticExtractor(x)
-        features = [extractor(base_feature_map) for extractor in self.AdaptiveExtractors]
-        features = torch.cat(features, 1)
-        return features
-
-    def forward(self, x):
-        base_feature_map = self.TaskAgnosticExtractor(x)
-        features = [extractor(base_feature_map) for extractor in self.AdaptiveExtractors]
-        features = torch.cat(features, 1)
-        out=self.fc(features) #{logits: self.fc(features)}
-
-        aux_logits=self.aux_fc(features[:,-self.out_dim:])["logits"] 
-
-        out.update({"aux_logits":aux_logits,"features":features})
-        out.update({"base_features":base_feature_map})
-        return out
-                
-        '''
-        {
-            'features': features
-            'logits': logits
-            'aux_logits':aux_logits
-        }
-        '''
-        
-    def update_fc(self,nb_classes):
-        _ , _new_extractor = get_backbone(self.args, self.pretrained)
-        if len(self.AdaptiveExtractors)==0:
-            self.AdaptiveExtractors.append(_new_extractor)
-        else:
-            self.AdaptiveExtractors.append(_new_extractor)
-            self.AdaptiveExtractors[-1].load_state_dict(self.AdaptiveExtractors[-2].state_dict())
-
-        if self.out_dim is None:
-            # logging.info(self.AdaptiveExtractors[-1])
-            self.out_dim=self.AdaptiveExtractors[-1].out_dim        
-        fc = self.generate_fc(self.feature_dim, nb_classes)             
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            bias = copy.deepcopy(self.fc.bias.data)
-            fc.weight.data[:nb_output,:self.feature_dim-self.out_dim] = weight
-            fc.bias.data[:nb_output] = bias
-
-        del self.fc
-        self.fc = fc
-
-        new_task_size = nb_classes - sum(self.task_sizes)
-        self.task_sizes.append(new_task_size)
-        self.aux_fc=self.generate_fc(self.out_dim,new_task_size+1)
- 
-    def generate_fc(self, in_dim, out_dim):
-        fc = SimpleLinear(in_dim, out_dim)
-        return fc
-
-    def copy(self):
-        return copy.deepcopy(self)
-
-    def weight_align(self, increment):
-        weights=self.fc.weight.data
-        newnorm=(torch.norm(weights[-increment:,:],p=2,dim=1))
-        oldnorm=(torch.norm(weights[:-increment,:],p=2,dim=1))
-        meannew=torch.mean(newnorm)
-        meanold=torch.mean(oldnorm)
-        gamma=meanold/meannew
-        print('alignweights,gamma=',gamma)
-        self.fc.weight.data[-increment:,:]*=gamma
-    
-    def load_checkpoint(self, args):
-        if args["init_cls"] == 50:
-            pkl_name = "{}_{}_{}_B{}_Inc{}".format( 
-                args["dataset"],
-                args["seed"],
-                args["backbone_type"],
-                0,
-                args["init_cls"],
-            )
-            checkpoint_name = f"checkpoints/finetune_{pkl_name}_0.pkl"
-        else:
-            checkpoint_name = f"checkpoints/finetune_{args['csv_name']}_0.pkl"
-        checkpoint_name = checkpoint_name.replace("memo_", "")
-        model_infos = torch.load(checkpoint_name)
-        model_dict = model_infos['backbone']
-        assert len(self.AdaptiveExtractors) == 1
-
-        base_state_dict = self.TaskAgnosticExtractor.state_dict()
-        adap_state_dict = self.AdaptiveExtractors[0].state_dict()
-
-        pretrained_base_dict = {
-            k:v
-            for k, v in model_dict.items()
-            if k in base_state_dict
-        }
-
-        pretrained_adap_dict = {
-            k:v
-            for k, v in model_dict.items()
-            if k in adap_state_dict
-        }
-
-        base_state_dict.update(pretrained_base_dict)
-        adap_state_dict.update(pretrained_adap_dict)
-
-        self.TaskAgnosticExtractor.load_state_dict(base_state_dict)
-        self.AdaptiveExtractors[0].load_state_dict(adap_state_dict)
-        self.fc.load_state_dict(model_infos['fc'])
-        test_acc = model_infos['test_acc']
-        return test_acc
-
-
 class EaseNet(BaseNet):
     def __init__(self, args, pretrained=True):
         super().__init__(args, pretrained)
@@ -1013,135 +338,88 @@ class EaseNet(BaseNet):
             if param.requires_grad:
                 print(name, param.numel())
 
-class SLCANet(BaseNet):
 
-    def __init__(self, args, pretrained=True, fc_with_ln=False):
+class SimplexEaseNet(BaseNet):
+    def __init__(self, args, pretrained=True, total_cls=100):
         super().__init__(args, pretrained)
-        self.old_fc = None
-        self.fc_with_ln = fc_with_ln
-
-
-    def extract_layerwise_vector(self, x, pool=True):
-        with torch.no_grad():
-            features = self.backbone(x, layer_feat=True)['features']
-        for f_i in range(len(features)):
-            if pool:
-                features[f_i] = features[f_i].mean(1).cpu().numpy() 
-            else:
-                features[f_i] = features[f_i][:, 0].cpu().numpy() 
-        return features
-
-
-    def update_fc(self, nb_classes, freeze_old=True):
-        if self.fc is None:
-            self.fc = self.generate_fc(self.feature_dim, nb_classes)
-        else:
-            self.fc.update(nb_classes, freeze_old=freeze_old)
-
-    def save_old_fc(self):
-        if self.old_fc is None:
-            self.old_fc = copy.deepcopy(self.fc)
-        else:
-            self.old_fc.heads.append(copy.deepcopy(self.fc.heads[-1]))
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = SimpleContinualLinear(in_dim, out_dim)
-
-        return fc
-
-    def forward(self, x, bcb_no_grad=False, fc_only=False):
-        if fc_only:
-            fc_out = self.fc(x)
-            if self.old_fc is not None:
-                old_fc_logits = self.old_fc(x)['logits']
-                fc_out['old_logits'] = old_fc_logits
-            return fc_out
-        if bcb_no_grad:
-            with torch.no_grad():
-                x = self.backbone(x)
-        else:
-            x = self.backbone(x)
-        out = self.fc(x)
-        out.update({"features": x})
-
-        return out
-
-class LAE(nn.Module):
-    def __init__(self, args, pretrained=True):
-        super().__init__()
-        self.backbone = get_backbone(args, pretrained=pretrained)
-        self.backbone.out_dim = 768
-        self.fc = None
-        self._device = args["device"][0]
         self.args = args
-        self.pet_cls = args["pet_cls"]
-        self.pet_length = args["pet_length"]
-        self.pets_emas = nn.ModuleList([])
-        self.adapt_blocks = [0, 1, 2, 3, 4]
-        self.down_sample_dim = args["down_sample_dim"]
+        self.inc = args["increment"]
+        self.init_cls = args["init_cls"]
+        self._cur_task = -1
+        self.out_dim =  self.backbone.out_dim
+        self.use_init_ptm = args["use_init_ptm"]
+        self.alpha = args["alpha"]
+        self.beta = args["beta"]
 
-        self.pets = self.create_pets()
-        self.pets_emas = self.create_pets()
-        for pq, pk in zip(self.pets.parameters(),self.pets_emas.parameters()):
-            pk.data.copy_(pq.data)
-            pk.requires_grad=False
-        self.attach_pets_vit(self.pets)
+        # D-SIMPLEX
+        self.total_cls = total_cls
 
+        self.junction_list = []
+        self.add_new_junction(self._device)
+        self.dsimplex_layer = nn.Linear(self.total_cls - 1, self.total_cls, bias=False)
+
+        fixed_weights = self.dsimplex()
+        self.dsimplex_layer.weight.requires_grad = False
+        self.dsimplex_layer.weight.copy_(fixed_weights)
+            
+    def freeze(self):
+        for name, param in self.named_parameters():
+            param.requires_grad = False
+            # print(name)
+    
     @property
     def feature_dim(self):
-        return self.backbone.out_dim
-
-    def create_pets(self):
-        n = len(self.adapt_blocks)
-        embed_dim = self.backbone.embed_dim
-        if self.pet_cls == "Prefix":
-            from backbone.vit_lae import Prefix
-            return nn.ModuleList([Prefix(length=self.pet_length, dim=embed_dim) for _ in range(n)])
-        if self.pet_cls == "Adapter":
-            from backbone.vit_lae import Adapter
-            return nn.ModuleList([Adapter(embed_dim=embed_dim, down_sample=self.down_sample_dim) for _ in range(n)])
-        if self.pet_cls == "LoRA":
-            from backbone.vit_lae import KVLoRA
-            return nn.ModuleList([KVLoRA(in_features=embed_dim, out_features=embed_dim) for _ in range(n)] )
-
-    def attach_pets_vit(self, pets: nn.ModuleList):
-        assert self.pet_cls in ["Adapter", "LoRA", "Prefix"]
-        
-        if self.pet_cls == "Prefix":
-            for i, b in enumerate(self.adapt_blocks):
-                self.backbone.blocks[b].attn.attach_prefix(pets[i])
-            return
-        if self.pet_cls == "Adapter":
-            for i, b in enumerate(self.adapt_blocks):
-                self.backbone.blocks[b].attn.attach_adapter(attn=pets[i])
-            return
-        if self.cfg.pet_cls == "LoRA":
-            for i, b in enumerate(self.cfg.adapt_blocks):
-                self.model.backbone.blocks[b].attn.attach_adapter(qkv=pets[i])
-            return
-        
+        if self.use_init_ptm:
+            return self.out_dim * (self._cur_task + 2)
+        else:
+            return self.out_dim * (self._cur_task + 1)
+    
     def extract_vector(self, x):
         return self.backbone(x)
 
-    def forward(self, x):
-        x = self.backbone(x)
-        x = x[:,0,:]
-        out = self.fc(x)
-        
+    def dsimplex(self, device='cuda'):
+        def simplex_coordinates(n, device):
+            t = torch.zeros((n + 1, n), device=device)
+            torch.eye(n, out=t[:-1,:], device=device)
+            val = (1.0 - torch.sqrt(1.0 + torch.tensor([n], device=device))) / n
+            t[-1,:].add_(val)
+            t.add_(-torch.mean(t, dim=0))
+            t.div_(torch.norm(t, p=2, dim=1, keepdim=True)+ 1e-8)
+            return t
+
+        ds = simplex_coordinates(self.total_cls - 1, device)
+        return ds
+
+    def add_new_junction(self, device):
+        self.junction_list.append(nn.Linear(self.out_dim, self.total_cls - 1, bias=False).requires_grad_(True).to(device))
+
+    def update_junctions(self, device):
+        self._cur_task += 1
+
+        self.junction_list[self._cur_task - 1].requires_grad_(False)
+        self.add_new_junction(device)
+
+    def forward(self, x, test=False):
+        if test == False:
+            x = self.backbone.forward(x, False)
+            out = self.junction_list[self._cur_task](x)
+            out = self.dsimplex_layer(out)
+        else:
+            x = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm)
+            if self.args["moni_adam"] or (not self.args["use_reweight"]):
+                features = []
+                for junction in self.junction_list:
+                    features.append(self.junction(x))
+                out = torch.mean(torch.stack(features), dim=0)
+                out = self.dsimplex_layer(out)
+            else:
+                out = self.fc.forward_reweight(x, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.inc, use_init_ptm=self.use_init_ptm, beta=self.beta)
+            
+        out = {'logits': out}
+        out.update({"features": x})
         return out
 
-    def update_fc(self, nb_classes):
-        fc = self.generate_fc(self.feature_dim, nb_classes)
-        if self.fc is not None:
-            nb_output = self.fc.out_features
-            weight = copy.deepcopy(self.fc.weight.data)
-            bias = copy.deepcopy(self.fc.bias.data)
-            fc.weight.data[:nb_output] = weight
-            fc.bias.data[:nb_output] = bias
-
-        del self.fc
-        self.fc = fc
-
-    def generate_fc(self, in_dim, out_dim):
-        fc = SimpleLinear(in_dim, out_dim)
-        return fc
+    def show_trainable_params(self):
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                print(name, param.numel())
