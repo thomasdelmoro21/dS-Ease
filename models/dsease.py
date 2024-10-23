@@ -8,7 +8,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from utils.inc_net import EaseNet, SimplexEaseNet
 from models.base import BaseLearner
-from utils.toolkit import tensor2numpy
+from utils.toolkit import tensor2numpy, count_parameters
 
 num_workers = 8
 
@@ -45,7 +45,6 @@ class Learner(BaseLearner):
         self._known_classes = self._total_classes
         self._network.freeze()
         self._network.backbone.add_adapter_to_list()
-        self._network.backbone.add_junction_to_list()
     
     def get_cls_range(self, task_id):
         if task_id == 0:
@@ -57,12 +56,12 @@ class Learner(BaseLearner):
         
         return start_cls, end_cls
         
-    # TODO
     def incremental_train(self, data_manager):
         self._cur_task += 1
         self._total_classes = self._known_classes + data_manager.get_task_size(self._cur_task)
         #self._network.update_fc(self._total_classes)
         self._network.update_junctions(self._device)  # Add a junction layer after the current adapter and increment current task id
+        logging.info("Total trainable params: {}".format(count_parameters(self._network, True)))
         logging.info("Learning on {}-{}".format(self._known_classes, self._total_classes))
         # self._network.show_trainable_params()
         

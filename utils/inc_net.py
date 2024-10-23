@@ -354,7 +354,7 @@ class SimplexEaseNet(BaseNet):
         # D-SIMPLEX
         self.total_cls = total_cls
 
-        self.junction_list = []
+        self.junction_list = nn.ModuleList()
         self.add_new_junction(self._device)
         self.dsimplex_layer = nn.Linear(self.total_cls - 1, self.total_cls, bias=False)
 
@@ -391,32 +391,33 @@ class SimplexEaseNet(BaseNet):
         return ds
 
     def add_new_junction(self, device):
-        self.junction_list.append(nn.Linear(self.out_dim, self.total_cls - 1, bias=False).requires_grad_(True).to(device))
+        self.junction_list.append(nn.Linear(self.out_dim, self.total_cls - 1, bias=False).requires_grad_(True))
 
     def update_junctions(self, device):
         self._cur_task += 1
 
-        self.junction_list[self._cur_task - 1].requires_grad_(False)
-        self.add_new_junction(device)
+        if self._cur_task > 0:
+            self.junction_list[self._cur_task - 1].requires_grad_(False)
+            self.add_new_junction(device)
 
     def forward(self, x, test=False):
         if test == False:
-            x = self.backbone.forward(x, False)
-            out = self.junction_list[self._cur_task](x)
+            vit_out = self.backbone.forward(x, False)
+            out = self.junction_list[self._cur_task](vit_out)
             out = self.dsimplex_layer(out)
         else:
-            x = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm)
+            vit_out = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm, use_dsimplex=True)
             if self.args["moni_adam"] or (not self.args["use_reweight"]):
                 features = []
-                for junction in self.junction_list:
-                    features.append(self.junction(x))
+                for x, junction in zip(vit_out, self.junction_list):
+                    features.append(junction(x))
                 out = torch.mean(torch.stack(features), dim=0)
                 out = self.dsimplex_layer(out)
             else:
                 out = self.fc.forward_reweight(x, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.inc, use_init_ptm=self.use_init_ptm, beta=self.beta)
             
         out = {'logits': out}
-        out.update({"features": x})
+        out.update({"features": vit_out})
         return out
 
     def show_trainable_params(self):

@@ -361,18 +361,23 @@ class VisionTransformer(nn.Module):
         
         return features
 
-    def forward(self, x, test=False, use_init_ptm=False):
+    def forward(self, x, test=False, use_init_ptm=False, use_dsimplex=False):
         if not test:
             output = self.forward_train(x)
         else:
             features = self.forward_test(x, use_init_ptm)
-            output = torch.Tensor().to(features[0].device)
-            for x in features:
-                cls = x[:, 0, :]
-                output = torch.cat((
-                    output,
-                    cls
-                ), dim=1)
+            if not use_dsimplex:  # EASE
+                output = torch.Tensor().to(features[0].device)
+                for x in features:
+                    cls = x[:, 0, :]
+                    output = torch.cat((
+                        output,
+                        cls
+                    ), dim=1)
+            else:  # D-SIMPLEX EASE
+                output = []
+                for x in features:
+                    output.append(x[:, 0, :])
 
         return output
 
