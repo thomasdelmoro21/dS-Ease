@@ -22,13 +22,14 @@ def train(args):
 
 def _train(args):
 
-    wandb.init(
-        project = "dS-Ease",
-        config={
-            "model": args["model_name"],
-            "dataset": args["dataset"]
-        }
-    )
+    if args["wandb_log"]:
+        wandb.init(
+            project = "dS-Ease",
+            config={
+                "model": args["model_name"],
+                "dataset": args["dataset"]
+            }
+        )
 
     init_cls = 0 if args ["init_cls"] == args["increment"] else args["init_cls"]
     logs_name = "logs/{}/{}/{}/{}".format(args["model_name"],args["dataset"], init_cls, args['increment'])
@@ -129,12 +130,13 @@ def _train(args):
             print('Average Accuracy (CNN):', avg_acc)
             logging.info("Average Accuracy (CNN): {} \n".format(avg_acc))
 
-            wandb.log({
-                "Grouped accuracy": cnn_accy["grouped"],
-                "Top 1 curve": cnn_curve["top1"],
-                "Top 5 curve": cnn_curve["top5"],
-                "Average Accuracy": avg_acc
-            })
+            if args["wandb_log"]:
+                wandb.log({
+                    "Grouped accuracy": cnn_accy["grouped"],
+                    "Top 1 curve": cnn_curve["top1"],
+                    "Top 5 curve": cnn_curve["top5"],
+                    "Average Accuracy": avg_acc
+                })
 
     if 'print_forget' in args.keys() and args['print_forget'] is True:
         if len(cnn_matrix) > 0:

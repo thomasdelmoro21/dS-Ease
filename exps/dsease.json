@@ -11,10 +11,11 @@
     "backbone_type": "vit_base_patch16_224_ease",
     "device": ["0"],
     "seed": [1993],
+    "wandb_log": false,
     
-    "init_epochs": 20,
+    "init_epochs": 3,
     "init_lr": 0.025,
-    "later_epochs": 20,
+    "later_epochs": 3,
     "later_lr": 0.025,
     "batch_size": 48,
     "weight_decay": 0.0005,

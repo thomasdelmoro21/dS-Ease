@@ -156,12 +156,13 @@ class Learner(BaseLearner):
                 inputs, targets = inputs.to(self._device), targets.to(self._device)
 
                 aux_targets = targets.clone()
+                '''
                 aux_targets = torch.where(
                     aux_targets - self._known_classes >= 0,
                     aux_targets - self._known_classes,
                     -1,
                 )
-                
+                '''
                 output = self._network(inputs, test=False)
                 logits = output["logits"]
 
