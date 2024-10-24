@@ -25,7 +25,7 @@ def _train(args):
     wandb.init(
         project = "dS-Ease",
         config={
-            "model": args["model_name"]
+            "model": args["model_name"],
             "dataset": args["dataset"]
         }
     )
