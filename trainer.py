@@ -1,3 +1,4 @@
+import wandb
 import sys
 import logging
 import copy
@@ -20,6 +21,14 @@ def train(args):
 
 
 def _train(args):
+
+    wandb.init(
+        project = "dS-Ease",
+        config={
+            "model": args["model_name"]
+            "dataset": args["dataset"]
+        }
+    )
 
     init_cls = 0 if args ["init_cls"] == args["increment"] else args["init_cls"]
     logs_name = "logs/{}/{}/{}/{}".format(args["model_name"],args["dataset"], init_cls, args['increment'])
@@ -116,8 +125,16 @@ def _train(args):
             logging.info("CNN top1 curve: {}".format(cnn_curve["top1"]))
             logging.info("CNN top5 curve: {}\n".format(cnn_curve["top5"]))
 
-            print('Average Accuracy (CNN):', sum(cnn_curve["top1"])/len(cnn_curve["top1"]))
-            logging.info("Average Accuracy (CNN): {} \n".format(sum(cnn_curve["top1"])/len(cnn_curve["top1"])))
+            avg_acc = sum(cnn_curve["top1"])/len(cnn_curve["top1"])
+            print('Average Accuracy (CNN):', avg_acc)
+            logging.info("Average Accuracy (CNN): {} \n".format(avg_acc))
+
+            wandb.log({
+                "Grouped accuracy": cnn_accy["grouped"],
+                "Top 1 curve": cnn_curve["top1"],
+                "Top 5 curve": cnn_curve["top5"],
+                "Average Accuracy": avg_acc
+            })
 
     if 'print_forget' in args.keys() and args['print_forget'] is True:
         if len(cnn_matrix) > 0:
@@ -140,6 +157,8 @@ def _train(args):
             print('Accuracy Matrix (NME):')
             print(np_acctable)
         logging.info('Forgetting (NME): {}'.format(forgetting))
+
+    wandb.finish()
 
 
 def _set_device(args):

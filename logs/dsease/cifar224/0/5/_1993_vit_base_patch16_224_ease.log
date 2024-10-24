@@ -1,0 +1,316 @@
+2024-10-23 23:41:27,922 [trainer.py] => config: ./exps/dsease.json
+2024-10-23 23:41:27,922 [trainer.py] => prefix:  
+2024-10-23 23:41:27,922 [trainer.py] => dataset: cifar224
+2024-10-23 23:41:27,922 [trainer.py] => memory_size: 0
+2024-10-23 23:41:27,922 [trainer.py] => memory_per_class: 0
+2024-10-23 23:41:27,922 [trainer.py] => fixed_memory: False
+2024-10-23 23:41:27,922 [trainer.py] => shuffle: True
+2024-10-23 23:41:27,922 [trainer.py] => init_cls: 5
+2024-10-23 23:41:27,922 [trainer.py] => increment: 5
+2024-10-23 23:41:27,922 [trainer.py] => model_name: dsease
+2024-10-23 23:41:27,922 [trainer.py] => backbone_type: vit_base_patch16_224_ease
+2024-10-23 23:41:27,922 [trainer.py] => device: [device(type='cuda', index=0)]
+2024-10-23 23:41:27,922 [trainer.py] => seed: 1993
+2024-10-23 23:41:27,922 [trainer.py] => init_epochs: 20
+2024-10-23 23:41:27,922 [trainer.py] => init_lr: 0.025
+2024-10-23 23:41:27,922 [trainer.py] => later_epochs: 20
+2024-10-23 23:41:27,922 [trainer.py] => later_lr: 0.025
+2024-10-23 23:41:27,922 [trainer.py] => batch_size: 48
+2024-10-23 23:41:27,923 [trainer.py] => weight_decay: 0.0005
+2024-10-23 23:41:27,923 [trainer.py] => min_lr: 0
+2024-10-23 23:41:27,923 [trainer.py] => optimizer: sgd
+2024-10-23 23:41:27,923 [trainer.py] => scheduler: cosine
+2024-10-23 23:41:27,923 [trainer.py] => pretrained: True
+2024-10-23 23:41:27,923 [trainer.py] => vpt_type: Deep
+2024-10-23 23:41:27,923 [trainer.py] => prompt_token_num: 5
+2024-10-23 23:41:27,923 [trainer.py] => ffn_num: 64
+2024-10-23 23:41:27,923 [trainer.py] => use_diagonal: False
+2024-10-23 23:41:27,923 [trainer.py] => recalc_sim: True
+2024-10-23 23:41:27,923 [trainer.py] => alpha: 0.1
+2024-10-23 23:41:27,923 [trainer.py] => use_init_ptm: False
+2024-10-23 23:41:27,923 [trainer.py] => beta: 0
+2024-10-23 23:41:27,923 [trainer.py] => use_old_data: False
+2024-10-23 23:41:27,923 [trainer.py] => use_reweight: False
+2024-10-23 23:41:27,923 [trainer.py] => moni_adam: False
+2024-10-23 23:41:27,923 [trainer.py] => adapter_num: -1
+2024-10-23 23:41:29,698 [data_manager.py] => [68, 56, 78, 8, 23, 84, 90, 65, 74, 76, 40, 89, 3, 92, 55, 9, 26, 80, 43, 38, 58, 70, 77, 1, 85, 19, 17, 50, 28, 53, 13, 81, 45, 82, 6, 59, 83, 16, 15, 44, 91, 41, 72, 60, 79, 52, 20, 10, 31, 54, 37, 95, 14, 71, 96, 98, 97, 2, 64, 66, 42, 22, 35, 86, 24, 34, 87, 21, 99, 0, 88, 27, 18, 94, 11, 12, 47, 25, 30, 46, 62, 69, 36, 61, 7, 63, 75, 5, 32, 4, 51, 48, 73, 93, 39, 67, 29, 49, 57, 33]
+2024-10-23 23:41:34,753 [trainer.py] => All params: 87074220
+2024-10-23 23:41:34,754 [trainer.py] => Trainable params: 1265664
+2024-10-23 23:41:34,754 [dsease.py] => Total trainable params: 1265664
+2024-10-23 23:41:34,755 [dsease.py] => Learning on 0-5
+2024-10-23 23:50:41,523 [dsease.py] => Task 0, Epoch 20/20 => Loss 0.093, Train_accy 96.56
+2024-10-23 23:50:45,053 [dsease.py] => Task correct: 100.0
+2024-10-23 23:50:45,053 [dsease.py] => Task acc: 99.6
+2024-10-23 23:50:45,090 [trainer.py] => No NME accuracy.
+2024-10-23 23:50:45,090 [trainer.py] => CNN: {'total': np.float64(99.6), '00-04': np.float64(99.6), 'old': 0, 'new': np.float64(99.6)}
+2024-10-23 23:50:45,090 [trainer.py] => CNN top1 curve: [np.float64(99.6)]
+2024-10-23 23:50:45,090 [trainer.py] => CNN top5 curve: [np.float64(100.0)]
+
+2024-10-23 23:50:45,090 [trainer.py] => Average Accuracy (CNN): 99.6 
+
+2024-10-23 23:50:45,091 [trainer.py] => All params: 87074220
+2024-10-23 23:50:45,091 [trainer.py] => Trainable params: 1189632
+2024-10-23 23:50:45,093 [dsease.py] => Total trainable params: 1265664
+2024-10-23 23:50:45,093 [dsease.py] => Learning on 5-10
+2024-10-24 00:00:29,036 [dsease.py] => Task 1, Epoch 20/20 => Loss 0.149, Train_accy 94.92
+2024-10-24 00:00:41,093 [dsease.py] => Task correct: 50.0
+2024-10-24 00:00:41,094 [dsease.py] => Task acc: 55.9
+2024-10-24 00:00:41,133 [trainer.py] => No NME accuracy.
+2024-10-24 00:00:41,133 [trainer.py] => CNN: {'total': np.float64(49.3), '00-04': np.float64(98.6), '05-09': np.float64(0.0), 'old': np.float64(98.6), 'new': np.float64(0.0)}
+2024-10-24 00:00:41,133 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3)]
+2024-10-24 00:00:41,133 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0)]
+
+2024-10-24 00:00:41,133 [trainer.py] => Average Accuracy (CNN): 74.44999999999999 
+
+2024-10-24 00:00:41,134 [trainer.py] => All params: 87150252
+2024-10-24 00:00:41,135 [trainer.py] => Trainable params: 1189632
+2024-10-24 00:00:41,136 [dsease.py] => Total trainable params: 1265664
+2024-10-24 00:00:41,136 [dsease.py] => Learning on 10-15
+2024-10-24 00:10:20,634 [dsease.py] => Task 2, Epoch 20/20 => Loss 0.161, Train_accy 94.28
+2024-10-24 00:10:45,962 [dsease.py] => Task correct: 33.333333333333336
+2024-10-24 00:10:45,962 [dsease.py] => Task acc: 37.6
+2024-10-24 00:10:45,998 [trainer.py] => No NME accuracy.
+2024-10-24 00:10:45,998 [trainer.py] => CNN: {'total': np.float64(32.53), '00-04': np.float64(97.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), 'old': np.float64(48.8), 'new': np.float64(0.0)}
+2024-10-24 00:10:45,998 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53)]
+2024-10-24 00:10:45,998 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33)]
+
+2024-10-24 00:10:45,998 [trainer.py] => Average Accuracy (CNN): 60.47666666666666 
+
+2024-10-24 00:10:45,999 [trainer.py] => All params: 87226284
+2024-10-24 00:10:46,000 [trainer.py] => Trainable params: 1189632
+2024-10-24 00:10:46,001 [dsease.py] => Total trainable params: 1265664
+2024-10-24 00:10:46,001 [dsease.py] => Learning on 15-20
+2024-10-24 00:20:25,372 [dsease.py] => Task 3, Epoch 20/20 => Loss 0.160, Train_accy 94.36
+2024-10-24 00:21:11,238 [dsease.py] => Task correct: 25.0
+2024-10-24 00:21:11,238 [dsease.py] => Task acc: 25.1
+2024-10-24 00:21:11,280 [trainer.py] => No NME accuracy.
+2024-10-24 00:21:11,280 [trainer.py] => CNN: {'total': np.float64(24.4), '00-04': np.float64(97.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), 'old': np.float64(32.53), 'new': np.float64(0.0)}
+2024-10-24 00:21:11,280 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4)]
+2024-10-24 00:21:11,280 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0)]
+
+2024-10-24 00:21:11,280 [trainer.py] => Average Accuracy (CNN): 51.457499999999996 
+
+2024-10-24 00:21:11,281 [trainer.py] => All params: 87302316
+2024-10-24 00:21:11,282 [trainer.py] => Trainable params: 1189632
+2024-10-24 00:21:11,283 [dsease.py] => Total trainable params: 1265664
+2024-10-24 00:21:11,283 [dsease.py] => Learning on 20-25
+2024-10-24 00:30:55,010 [dsease.py] => Task 4, Epoch 20/20 => Loss 0.112, Train_accy 96.60
+2024-10-24 00:32:06,049 [dsease.py] => Task correct: 20.0
+2024-10-24 00:32:06,049 [dsease.py] => Task acc: 19.68
+2024-10-24 00:32:06,089 [trainer.py] => No NME accuracy.
+2024-10-24 00:32:06,089 [trainer.py] => CNN: {'total': np.float64(19.6), '00-04': np.float64(98.0), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), 'old': np.float64(24.5), 'new': np.float64(0.0)}
+2024-10-24 00:32:06,089 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6)]
+2024-10-24 00:32:06,089 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0)]
+
+2024-10-24 00:32:06,089 [trainer.py] => Average Accuracy (CNN): 45.086 
+
+2024-10-24 00:32:06,090 [trainer.py] => All params: 87378348
+2024-10-24 00:32:06,091 [trainer.py] => Trainable params: 1189632
+2024-10-24 00:32:06,092 [dsease.py] => Total trainable params: 1265664
+2024-10-24 00:32:06,092 [dsease.py] => Learning on 25-30
+2024-10-24 00:41:42,634 [dsease.py] => Task 5, Epoch 20/20 => Loss 0.068, Train_accy 97.72
+2024-10-24 00:43:21,208 [dsease.py] => Task correct: 16.666666666666668
+2024-10-24 00:43:21,209 [dsease.py] => Task acc: 15.433333333333334
+2024-10-24 00:43:21,252 [trainer.py] => No NME accuracy.
+2024-10-24 00:43:21,252 [trainer.py] => CNN: {'total': np.float64(15.27), '00-04': np.float64(91.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), 'old': np.float64(18.32), 'new': np.float64(0.0)}
+2024-10-24 00:43:21,252 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27)]
+2024-10-24 00:43:21,252 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67)]
+
+2024-10-24 00:43:21,253 [trainer.py] => Average Accuracy (CNN): 40.11666666666667 
+
+2024-10-24 00:43:21,253 [trainer.py] => All params: 87454380
+2024-10-24 00:43:21,254 [trainer.py] => Trainable params: 1189632
+2024-10-24 00:43:21,256 [dsease.py] => Total trainable params: 1265664
+2024-10-24 00:43:21,256 [dsease.py] => Learning on 30-35
+2024-10-24 00:53:04,761 [dsease.py] => Task 6, Epoch 20/20 => Loss 0.176, Train_accy 93.00
+2024-10-24 00:55:22,848 [dsease.py] => Task correct: 14.285714285714286
+2024-10-24 00:55:22,848 [dsease.py] => Task acc: 12.542857142857143
+2024-10-24 00:55:22,890 [trainer.py] => No NME accuracy.
+2024-10-24 00:55:22,891 [trainer.py] => CNN: {'total': np.float64(12.37), '00-04': np.float64(86.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), 'old': np.float64(14.43), 'new': np.float64(0.0)}
+2024-10-24 00:55:22,891 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37)]
+2024-10-24 00:55:22,891 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29)]
+
+2024-10-24 00:55:22,891 [trainer.py] => Average Accuracy (CNN): 36.152857142857144 
+
+2024-10-24 00:55:22,892 [trainer.py] => All params: 87530412
+2024-10-24 00:55:22,892 [trainer.py] => Trainable params: 1189632
+2024-10-24 00:55:22,894 [dsease.py] => Total trainable params: 1265664
+2024-10-24 00:55:22,894 [dsease.py] => Learning on 35-40
+2024-10-24 01:05:07,157 [dsease.py] => Task 7, Epoch 20/20 => Loss 0.096, Train_accy 96.60
+2024-10-24 01:08:07,316 [dsease.py] => Task correct: 12.5
+2024-10-24 01:08:07,316 [dsease.py] => Task acc: 10.725
+2024-10-24 01:08:07,353 [trainer.py] => No NME accuracy.
+2024-10-24 01:08:07,353 [trainer.py] => CNN: {'total': np.float64(10.58), '00-04': np.float64(84.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), 'old': np.float64(12.09), 'new': np.float64(0.0)}
+2024-10-24 01:08:07,353 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58)]
+2024-10-24 01:08:07,353 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5)]
+
+2024-10-24 01:08:07,353 [trainer.py] => Average Accuracy (CNN): 32.95625 
+
+2024-10-24 01:08:07,354 [trainer.py] => All params: 87606444
+2024-10-24 01:08:07,354 [trainer.py] => Trainable params: 1189632
+2024-10-24 01:08:07,356 [dsease.py] => Total trainable params: 1265664
+2024-10-24 01:08:07,356 [dsease.py] => Learning on 40-45
+2024-10-24 01:17:40,479 [dsease.py] => Task 8, Epoch 20/20 => Loss 0.119, Train_accy 96.04
+2024-10-24 01:21:27,972 [dsease.py] => Task correct: 11.11111111111111
+2024-10-24 01:21:27,972 [dsease.py] => Task acc: 9.133333333333333
+2024-10-24 01:21:28,010 [trainer.py] => No NME accuracy.
+2024-10-24 01:21:28,010 [trainer.py] => CNN: {'total': np.float64(9.11), '00-04': np.float64(82.0), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), 'old': np.float64(10.25), 'new': np.float64(0.0)}
+2024-10-24 01:21:28,010 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11)]
+2024-10-24 01:21:28,010 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11)]
+
+2024-10-24 01:21:28,010 [trainer.py] => Average Accuracy (CNN): 30.306666666666665 
+
+2024-10-24 01:21:28,011 [trainer.py] => All params: 87682476
+2024-10-24 01:21:28,011 [trainer.py] => Trainable params: 1189632
+2024-10-24 01:21:28,013 [dsease.py] => Total trainable params: 1265664
+2024-10-24 01:21:28,013 [dsease.py] => Learning on 45-50
+2024-10-24 01:31:11,565 [dsease.py] => Task 9, Epoch 20/20 => Loss 0.073, Train_accy 97.52
+2024-10-24 01:35:52,344 [dsease.py] => Task correct: 10.0
+2024-10-24 01:35:52,344 [dsease.py] => Task acc: 7.42
+2024-10-24 01:35:52,384 [trainer.py] => No NME accuracy.
+2024-10-24 01:35:52,384 [trainer.py] => CNN: {'total': np.float64(7.4), '00-04': np.float64(74.0), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), 'old': np.float64(8.22), 'new': np.float64(0.0)}
+2024-10-24 01:35:52,384 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4)]
+2024-10-24 01:35:52,384 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0)]
+
+2024-10-24 01:35:52,385 [trainer.py] => Average Accuracy (CNN): 28.016 
+
+2024-10-24 01:35:52,385 [trainer.py] => All params: 87758508
+2024-10-24 01:35:52,386 [trainer.py] => Trainable params: 1189632
+2024-10-24 01:35:52,388 [dsease.py] => Total trainable params: 1265664
+2024-10-24 01:35:52,388 [dsease.py] => Learning on 50-55
+2024-10-24 01:45:25,643 [dsease.py] => Task 10, Epoch 20/20 => Loss 0.091, Train_accy 97.36
+2024-10-24 01:51:05,164 [dsease.py] => Task correct: 9.090909090909092
+2024-10-24 01:51:05,164 [dsease.py] => Task acc: 6.0
+2024-10-24 01:51:05,201 [trainer.py] => No NME accuracy.
+2024-10-24 01:51:05,202 [trainer.py] => CNN: {'total': np.float64(5.85), '00-04': np.float64(64.4), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), 'old': np.float64(6.44), 'new': np.float64(0.0)}
+2024-10-24 01:51:05,202 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85)]
+2024-10-24 01:51:05,202 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09)]
+
+2024-10-24 01:51:05,202 [trainer.py] => Average Accuracy (CNN): 26.00090909090909 
+
+2024-10-24 01:51:05,203 [trainer.py] => All params: 87834540
+2024-10-24 01:51:05,204 [trainer.py] => Trainable params: 1189632
+2024-10-24 01:51:05,205 [dsease.py] => Total trainable params: 1265664
+2024-10-24 01:51:05,205 [dsease.py] => Learning on 55-60
+2024-10-24 02:00:49,243 [dsease.py] => Task 11, Epoch 20/20 => Loss 0.200, Train_accy 92.20
+2024-10-24 02:07:32,812 [dsease.py] => Task correct: 8.333333333333334
+2024-10-24 02:07:32,812 [dsease.py] => Task acc: 5.233333333333333
+2024-10-24 02:07:32,849 [trainer.py] => No NME accuracy.
+2024-10-24 02:07:32,849 [trainer.py] => CNN: {'total': np.float64(5.08), '00-04': np.float64(61.0), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), 'old': np.float64(5.55), 'new': np.float64(0.0)}
+2024-10-24 02:07:32,849 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08)]
+2024-10-24 02:07:32,849 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33)]
+
+2024-10-24 02:07:32,849 [trainer.py] => Average Accuracy (CNN): 24.257499999999997 
+
+2024-10-24 02:07:32,850 [trainer.py] => All params: 87910572
+2024-10-24 02:07:32,851 [trainer.py] => Trainable params: 1189632
+2024-10-24 02:07:32,852 [dsease.py] => Total trainable params: 1265664
+2024-10-24 02:07:32,852 [dsease.py] => Learning on 60-65
+2024-10-24 02:17:05,654 [dsease.py] => Task 12, Epoch 20/20 => Loss 0.108, Train_accy 95.96
+2024-10-24 02:24:58,058 [dsease.py] => Task correct: 7.6923076923076925
+2024-10-24 02:24:58,059 [dsease.py] => Task acc: 4.6923076923076925
+2024-10-24 02:24:58,101 [trainer.py] => No NME accuracy.
+2024-10-24 02:24:58,101 [trainer.py] => CNN: {'total': np.float64(4.58), '00-04': np.float64(59.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), 'old': np.float64(4.97), 'new': np.float64(0.0)}
+2024-10-24 02:24:58,101 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58)]
+2024-10-24 02:24:58,102 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69)]
+
+2024-10-24 02:24:58,102 [trainer.py] => Average Accuracy (CNN): 22.74384615384615 
+
+2024-10-24 02:24:58,103 [trainer.py] => All params: 87986604
+2024-10-24 02:24:58,103 [trainer.py] => Trainable params: 1189632
+2024-10-24 02:24:58,105 [dsease.py] => Total trainable params: 1265664
+2024-10-24 02:24:58,105 [dsease.py] => Learning on 65-70
+2024-10-24 02:34:41,700 [dsease.py] => Task 13, Epoch 20/20 => Loss 0.082, Train_accy 97.36
+2024-10-24 02:43:44,034 [dsease.py] => Task correct: 7.142857142857143
+2024-10-24 02:43:44,034 [dsease.py] => Task acc: 4.557142857142857
+2024-10-24 02:43:44,077 [trainer.py] => No NME accuracy.
+2024-10-24 02:43:44,077 [trainer.py] => CNN: {'total': np.float64(4.36), '00-04': np.float64(61.0), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), '65-69': np.float64(0.0), 'old': np.float64(4.69), 'new': np.float64(0.0)}
+2024-10-24 02:43:44,077 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58), np.float64(4.36)]
+2024-10-24 02:43:44,077 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69), np.float64(7.14)]
+
+2024-10-24 02:43:44,077 [trainer.py] => Average Accuracy (CNN): 21.430714285714284 
+
+2024-10-24 02:43:44,078 [trainer.py] => All params: 88062636
+2024-10-24 02:43:44,080 [trainer.py] => Trainable params: 1189632
+2024-10-24 02:43:44,082 [dsease.py] => Total trainable params: 1265664
+2024-10-24 02:43:44,082 [dsease.py] => Learning on 70-75
+2024-10-24 02:53:24,357 [dsease.py] => Task 14, Epoch 20/20 => Loss 0.100, Train_accy 96.88
+2024-10-24 03:03:53,631 [dsease.py] => Task correct: 6.666666666666667
+2024-10-24 03:03:53,631 [dsease.py] => Task acc: 4.48
+2024-10-24 03:03:53,676 [trainer.py] => No NME accuracy.
+2024-10-24 03:03:53,677 [trainer.py] => CNN: {'total': np.float64(4.17), '00-04': np.float64(62.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), '65-69': np.float64(0.0), '70-74': np.float64(0.0), 'old': np.float64(4.47), 'new': np.float64(0.0)}
+2024-10-24 03:03:53,677 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58), np.float64(4.36), np.float64(4.17)]
+2024-10-24 03:03:53,677 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69), np.float64(7.14), np.float64(6.67)]
+
+2024-10-24 03:03:53,677 [trainer.py] => Average Accuracy (CNN): 20.279999999999998 
+
+2024-10-24 03:03:53,678 [trainer.py] => All params: 88138668
+2024-10-24 03:03:53,679 [trainer.py] => Trainable params: 1189632
+2024-10-24 03:03:53,680 [dsease.py] => Total trainable params: 1265664
+2024-10-24 03:03:53,680 [dsease.py] => Learning on 75-80
+2024-10-24 03:13:32,476 [dsease.py] => Task 15, Epoch 20/20 => Loss 0.108, Train_accy 96.04
+2024-10-24 03:25:22,348 [dsease.py] => Task correct: 6.25
+2024-10-24 03:25:22,348 [dsease.py] => Task acc: 3.9625
+2024-10-24 03:25:22,502 [trainer.py] => No NME accuracy.
+2024-10-24 03:25:22,502 [trainer.py] => CNN: {'total': np.float64(3.74), '00-04': np.float64(59.8), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), '65-69': np.float64(0.0), '70-74': np.float64(0.0), '75-79': np.float64(0.0), 'old': np.float64(3.99), 'new': np.float64(0.0)}
+2024-10-24 03:25:22,503 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58), np.float64(4.36), np.float64(4.17), np.float64(3.74)]
+2024-10-24 03:25:22,503 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69), np.float64(7.14), np.float64(6.67), np.float64(6.25)]
+
+2024-10-24 03:25:22,503 [trainer.py] => Average Accuracy (CNN): 19.24625 
+
+2024-10-24 03:25:22,504 [trainer.py] => All params: 88214700
+2024-10-24 03:25:22,504 [trainer.py] => Trainable params: 1189632
+2024-10-24 03:25:22,506 [dsease.py] => Total trainable params: 1265664
+2024-10-24 03:25:22,506 [dsease.py] => Learning on 80-85
+2024-10-24 03:35:05,027 [dsease.py] => Task 16, Epoch 20/20 => Loss 0.099, Train_accy 96.92
+2024-10-24 03:48:22,426 [dsease.py] => Task correct: 5.882352941176471
+2024-10-24 03:48:22,427 [dsease.py] => Task acc: 3.9529411764705884
+2024-10-24 03:48:22,467 [trainer.py] => No NME accuracy.
+2024-10-24 03:48:22,467 [trainer.py] => CNN: {'total': np.float64(3.8), '00-04': np.float64(64.6), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), '65-69': np.float64(0.0), '70-74': np.float64(0.0), '75-79': np.float64(0.0), '80-84': np.float64(0.0), 'old': np.float64(4.04), 'new': np.float64(0.0)}
+2024-10-24 03:48:22,467 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58), np.float64(4.36), np.float64(4.17), np.float64(3.74), np.float64(3.8)]
+2024-10-24 03:48:22,467 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69), np.float64(7.14), np.float64(6.67), np.float64(6.25), np.float64(5.88)]
+
+2024-10-24 03:48:22,468 [trainer.py] => Average Accuracy (CNN): 18.33764705882353 
+
+2024-10-24 03:48:22,468 [trainer.py] => All params: 88290732
+2024-10-24 03:48:22,469 [trainer.py] => Trainable params: 1189632
+2024-10-24 03:48:22,470 [dsease.py] => Total trainable params: 1265664
+2024-10-24 03:48:22,470 [dsease.py] => Learning on 85-90
+2024-10-24 03:58:07,551 [dsease.py] => Task 17, Epoch 20/20 => Loss 0.166, Train_accy 93.80
+2024-10-24 04:13:12,350 [dsease.py] => Task correct: 5.555555555555555
+2024-10-24 04:13:12,350 [dsease.py] => Task acc: 3.8
+2024-10-24 04:13:12,392 [trainer.py] => No NME accuracy.
+2024-10-24 04:13:12,392 [trainer.py] => CNN: {'total': np.float64(3.73), '00-04': np.float64(67.2), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), '65-69': np.float64(0.0), '70-74': np.float64(0.0), '75-79': np.float64(0.0), '80-84': np.float64(0.0), '85-89': np.float64(0.0), 'old': np.float64(3.95), 'new': np.float64(0.0)}
+2024-10-24 04:13:12,392 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58), np.float64(4.36), np.float64(4.17), np.float64(3.74), np.float64(3.8), np.float64(3.73)]
+2024-10-24 04:13:12,392 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69), np.float64(7.14), np.float64(6.67), np.float64(6.25), np.float64(5.88), np.float64(5.56)]
+
+2024-10-24 04:13:12,392 [trainer.py] => Average Accuracy (CNN): 17.526111111111113 
+
+2024-10-24 04:13:12,393 [trainer.py] => All params: 88366764
+2024-10-24 04:13:12,394 [trainer.py] => Trainable params: 1189632
+2024-10-24 04:13:12,395 [dsease.py] => Total trainable params: 1265664
+2024-10-24 04:13:12,395 [dsease.py] => Learning on 90-95
+2024-10-24 04:22:46,902 [dsease.py] => Task 18, Epoch 20/20 => Loss 0.112, Train_accy 96.88
+2024-10-24 04:39:36,086 [dsease.py] => Task correct: 5.2631578947368425
+2024-10-24 04:39:36,086 [dsease.py] => Task acc: 3.463157894736842
+2024-10-24 04:39:36,124 [trainer.py] => No NME accuracy.
+2024-10-24 04:39:36,124 [trainer.py] => CNN: {'total': np.float64(3.41), '00-04': np.float64(64.8), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), '65-69': np.float64(0.0), '70-74': np.float64(0.0), '75-79': np.float64(0.0), '80-84': np.float64(0.0), '85-89': np.float64(0.0), '90-94': np.float64(0.0), 'old': np.float64(3.6), 'new': np.float64(0.0)}
+2024-10-24 04:39:36,124 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58), np.float64(4.36), np.float64(4.17), np.float64(3.74), np.float64(3.8), np.float64(3.73), np.float64(3.41)]
+2024-10-24 04:39:36,124 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69), np.float64(7.14), np.float64(6.67), np.float64(6.25), np.float64(5.88), np.float64(5.56), np.float64(5.26)]
+
+2024-10-24 04:39:36,124 [trainer.py] => Average Accuracy (CNN): 16.783157894736846 
+
+2024-10-24 04:39:36,125 [trainer.py] => All params: 88442796
+2024-10-24 04:39:36,125 [trainer.py] => Trainable params: 1189632
+2024-10-24 04:39:36,127 [dsease.py] => Total trainable params: 1265664
+2024-10-24 04:39:36,127 [dsease.py] => Learning on 95-100
+2024-10-24 04:49:09,811 [dsease.py] => Task 19, Epoch 20/20 => Loss 0.145, Train_accy 95.04
+2024-10-24 05:07:47,752 [dsease.py] => Task correct: 5.0
+2024-10-24 05:07:47,752 [dsease.py] => Task acc: 3.53
+2024-10-24 05:07:47,790 [trainer.py] => No NME accuracy.
+2024-10-24 05:07:47,791 [trainer.py] => CNN: {'total': np.float64(3.44), '00-04': np.float64(68.8), '05-09': np.float64(0.0), '10-14': np.float64(0.0), '15-19': np.float64(0.0), '20-24': np.float64(0.0), '25-29': np.float64(0.0), '30-34': np.float64(0.0), '35-39': np.float64(0.0), '40-44': np.float64(0.0), '45-49': np.float64(0.0), '50-54': np.float64(0.0), '55-59': np.float64(0.0), '60-64': np.float64(0.0), '65-69': np.float64(0.0), '70-74': np.float64(0.0), '75-79': np.float64(0.0), '80-84': np.float64(0.0), '85-89': np.float64(0.0), '90-94': np.float64(0.0), '95-99': np.float64(0.0), 'old': np.float64(3.62), 'new': np.float64(0.0)}
+2024-10-24 05:07:47,791 [trainer.py] => CNN top1 curve: [np.float64(99.6), np.float64(49.3), np.float64(32.53), np.float64(24.4), np.float64(19.6), np.float64(15.27), np.float64(12.37), np.float64(10.58), np.float64(9.11), np.float64(7.4), np.float64(5.85), np.float64(5.08), np.float64(4.58), np.float64(4.36), np.float64(4.17), np.float64(3.74), np.float64(3.8), np.float64(3.73), np.float64(3.41), np.float64(3.44)]
+2024-10-24 05:07:47,791 [trainer.py] => CNN top5 curve: [np.float64(100.0), np.float64(50.0), np.float64(33.33), np.float64(25.0), np.float64(20.0), np.float64(16.67), np.float64(14.29), np.float64(12.5), np.float64(11.11), np.float64(10.0), np.float64(9.09), np.float64(8.33), np.float64(7.69), np.float64(7.14), np.float64(6.67), np.float64(6.25), np.float64(5.88), np.float64(5.56), np.float64(5.26), np.float64(5.0)]
+
+2024-10-24 05:07:47,791 [trainer.py] => Average Accuracy (CNN): 16.116000000000003 
+
