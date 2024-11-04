@@ -59,6 +59,7 @@ class Learner(BaseLearner):
     def incremental_train(self, data_manager):
         self._cur_task += 1
         self._total_classes = self._known_classes + data_manager.get_task_size(self._cur_task)
+        self._all_classes = data_manager.nb_classes
         #self._network.update_fc(self._total_classes)
         self._network.update_junctions(self._device)  # Add a junction layer after the current adapter and increment current task id
         logging.info("Total trainable params: {}".format(count_parameters(self._network, True)))
@@ -72,6 +73,9 @@ class Learner(BaseLearner):
         self.test_dataset = data_manager.get_dataset(np.arange(0, self._total_classes), source="test", mode="test" )
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
         
+        self.all_cls_test_dataset = data_manager.get_dataset(np.arange(0, self._all_classes), source="test", mode="test" )
+        self.all_cls_test_loader = DataLoader(self.all_cls_test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
+
         #self.train_dataset_for_protonet = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes),source="train", mode="test", )
         #self.train_loader_for_protonet = DataLoader(self.train_dataset_for_protonet, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
 
