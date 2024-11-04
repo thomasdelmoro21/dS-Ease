@@ -126,7 +126,7 @@ class BaseLearner(object):
 
         # Zero-Shot Performance on known and future classes
         if test_future:
-            y_pred_all, y_true_all = self._eval_cnn(self.test_loader, calc_task_acc=False)
+            y_pred_all, y_true_all = self._eval_cnn(self.all_cls_test_loader, calc_task_acc=False)
 
             cnn_accy_all = self._evaluate(y_pred_all, y_true_all)
         else:
