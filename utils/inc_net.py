@@ -401,6 +401,7 @@ class SimplexEaseNet(BaseNet):
             self.add_new_junction(device)
 
     def forward(self, x, test=False):
+        mean_first = True
         if test == False:
             vit_out = self.backbone.forward(x, False)
             out = self.junction_list[self._cur_task](vit_out)
@@ -408,11 +409,19 @@ class SimplexEaseNet(BaseNet):
         else:
             vit_out = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm, use_dsimplex=True)
             if self.args["moni_adam"] or (not self.args["use_reweight"]):
-                features = []
-                for x, junction in zip(vit_out, self.junction_list):
-                    features.append(junction(x))
-                out = torch.mean(torch.stack(features), dim=0)
-                out = self.dsimplex_layer(out)
+                if mean_first:
+                    features = []
+                    for x, junction in zip(vit_out, self.junction_list):
+                        features.append(junction(x))
+                    out = torch.sum(torch.stack(features), dim=0)
+                    out = self.dsimplex_layer(out)
+                else:
+                    out = []
+                    for x, junction in zip(vit_out, self.junction_list):
+                        x = junction(x)
+                        out.append(self.dsimplex_layer(x))
+                    out = torch.mean(torch.stack(out), dim=0)
+
             else:
                 out = self.fc.forward_reweight(x, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.inc, use_init_ptm=self.use_init_ptm, beta=self.beta)
             

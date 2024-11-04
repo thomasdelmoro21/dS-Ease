@@ -112,8 +112,10 @@ class BaseLearner(object):
 
         return ret
 
-    def eval_task(self):
+    def eval_task(self, test_future=False):
+        
         y_pred, y_true = self._eval_cnn(self.test_loader)
+
         cnn_accy = self._evaluate(y_pred, y_true)
 
         if hasattr(self, "_class_means"):
@@ -122,7 +124,16 @@ class BaseLearner(object):
         else:
             nme_accy = None
 
-        return cnn_accy, nme_accy
+        # Zero-Shot Performance on known and future classes
+        if test_future:
+            y_pred_all, y_true_all = self._eval_cnn(self.test_loader, calc_task_acc=False)
+
+            cnn_accy_all = self._evaluate(y_pred_all, y_true_all)
+        else:
+            cnn_accy_all = None
+
+
+        return cnn_accy, cnn_accy_all, nme_accy
 
     def incremental_train(self):
         pass

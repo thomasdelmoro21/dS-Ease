@@ -206,8 +206,7 @@ class Learner(BaseLearner):
 
         return np.around(tensor2numpy(correct) * 100 / total, decimals=2)
 
-    def _eval_cnn(self, loader):
-        calc_task_acc = True
+    def _eval_cnn(self, loader, cal_task_acc=True):
         
         if calc_task_acc:
             task_correct, task_acc, total = 0, 0, 0

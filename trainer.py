@@ -74,6 +74,8 @@ def _train(args):
 
     cnn_curve, nme_curve = {"top1": [], "top5": []}, {"top1": [], "top5": []}
     cnn_matrix, nme_matrix = [], []
+    cnn_matrix_all = []
+    
 
     for task in range(data_manager.nb_tasks):
         logging.info("All params: {}".format(count_parameters(model._network)))
@@ -81,14 +83,14 @@ def _train(args):
             "Trainable params: {}".format(count_parameters(model._network, True))
         )
         model.incremental_train(data_manager)
-        cnn_accy, nme_accy = model.eval_task()
+        cnn_accy, cnn_accy_all, nme_accy = model.eval_task(args["test_future"])
         model.after_task()
 
         if nme_accy is not None:
             logging.info("CNN: {}".format(cnn_accy["grouped"]))
             logging.info("NME: {}".format(nme_accy["grouped"]))
 
-            cnn_keys = [key for key in cnn_accy["grouped"].keys() if '-' in key]    
+            cnn_keys = [key for key in cnn_accy["grouped"].keys() if '-' in key]
             cnn_values = [cnn_accy["grouped"][key] for key in cnn_keys]
             cnn_matrix.append(cnn_values)
 
@@ -130,13 +132,36 @@ def _train(args):
             print('Average Accuracy (CNN):', avg_acc)
             logging.info("Average Accuracy (CNN): {} \n".format(avg_acc))
 
+            if test_future:
+                # Zero-Shot on all classes
+                cnn_keys_all = [key for key in cnn_accy_all["grouped"].keys() if '-' in key]
+                cnn_values_all = [cnn_accy_all["grouped"][key] for key in cnn_keys_all]
+                cnn_matrix_all.append(cnn_values_all)
+                logging.info("Zero-Shot Performance: {} \n".format(cnn_values_all))
+
             if args["wandb_log"]:
-                wandb.log({
-                    "Grouped accuracy": cnn_accy["grouped"],
-                    "Top 1 curve": cnn_curve["top1"],
-                    "Top 5 curve": cnn_curve["top5"],
-                    "Average Accuracy": avg_acc
-                })
+                if task == 0 and test_future:
+                    zs_matrix = wandb.Table(columns=cnn_keys_all)
+                    zs_matrix.add_data(*cnn_values_all)
+                elif task != and test_future:
+                    zs_matrix.add_data(*cnn_values_all)
+
+                if test_future:
+                    wandb.log({
+                        "Grouped accuracy": cnn_accy["grouped"],
+                        "Top 1 curve": cnn_curve["top1"],
+                        "Top 5 curve": cnn_curve["top5"],
+                        "Average Accuracy": avg_acc,
+                        "Zero-Shot Accuracy": zs_matrix
+                    })
+                else:
+                    wandb.log({
+                        "Grouped accuracy": cnn_accy["grouped"],
+                        "Top 1 curve": cnn_curve["top1"],
+                        "Top 5 curve": cnn_curve["top5"],
+                        "Average Accuracy": avg_acc
+                    })
+
 
     if 'print_forget' in args.keys() and args['print_forget'] is True:
         if len(cnn_matrix) > 0:
