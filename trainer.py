@@ -68,6 +68,7 @@ def _train(args):
         args,
     )
     
+    test_future = args["test_future"]
     args["nb_classes"] = data_manager.nb_classes # update args
     args["nb_tasks"] = data_manager.nb_tasks
     model = factory.get_model(args["model_name"], args)
@@ -83,7 +84,7 @@ def _train(args):
             "Trainable params: {}".format(count_parameters(model._network, True))
         )
         model.incremental_train(data_manager)
-        cnn_accy, cnn_accy_all, nme_accy = model.eval_task(args["test_future"])
+        cnn_accy, cnn_accy_all, nme_accy = model.eval_task(test_future)
         model.after_task()
 
         if nme_accy is not None:
@@ -143,7 +144,7 @@ def _train(args):
                 if task == 0 and test_future:
                     zs_matrix = wandb.Table(columns=cnn_keys_all)
                     zs_matrix.add_data(*cnn_values_all)
-                elif task != and test_future:
+                elif task != 0 and test_future:
                     zs_matrix.add_data(*cnn_values_all)
 
                 if test_future:
