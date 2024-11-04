@@ -25,8 +25,8 @@ Class-Incremental Learning often suffers from catastrophic forgetting, where the
 **Note**: A more recent Python version can lead to library incompatibilities.
 
 ## Installation
-**Note**: this is an installation example with a Linux OS and Cuda support v11.8, feel free to create your custom enviroment according to the dependencies described above.
-
+This is an installation example with a Linux OS and Cuda support v11.8.
+**Note**: For *Anaconda* environment, please refer to the [specific guide]() reported in the next section
 1. Clone the repository:
    ```bash
    git clone https://github.com/thomasdelmoro21/dS-Ease.git
@@ -42,6 +42,31 @@ Class-Incremental Learning often suffers from catastrophic forgetting, where the
 4. Install other requirements:
    ```bash
    pip3 install -r requirements.txt
+   ```
+
+### Installation with Conda Environment
+If you use a Conda environment, installing dependencies with *conda* can lead to incompatibilities. So, please follow exactly the following procedure:
+1. Create a new environment:
+   ```bash
+   conda create -n <env_name> python=3.10
+   ```  
+   ```bash
+   conda activate <env_name>
+   ```
+
+2. Install PyTorch with CUDA support (ex. Linux, Cuda 11.8)
+   ```bash
+   conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+   ```
+
+3. Install Pip
+   ```bash
+   conda install pip
+   ```
+
+4. Install other requirements with Pip:
+   ```bash
+   pip install -r requirements.txt
    ```
 
 ## Usage
