@@ -82,3 +82,10 @@ def split_images_labels(imgs):
         labels.append(item[1])
 
     return np.array(images), np.array(labels)
+
+
+def l2_norm(input, axis=1):
+    norm = torch.norm(input, 2, axis, True)
+    output = torch.div(input, norm)
+
+    return output

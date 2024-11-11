@@ -126,14 +126,15 @@ class BaseLearner(object):
 
         # Zero-Shot Performance on known and future classes
         if test_future:
-            y_pred_all, y_true_all = self._eval_cnn(self.all_cls_test_loader, calc_task_acc=False)
-
-            cnn_accy_all = self._evaluate(y_pred_all, y_true_all)
+            cnn_accy_all = self.eval_forward(self.all_cls_test_loader)
         else:
             cnn_accy_all = None
 
 
         return cnn_accy, cnn_accy_all, nme_accy
+
+    def eval_forward(self, loader):
+        pass
 
     def incremental_train(self):
         pass

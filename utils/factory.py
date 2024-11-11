@@ -5,6 +5,8 @@ def get_model(model_name, args):
         from models.ease import Learner
     elif name == "dsease":
         from models.dsease import Learner
+    elif name == "dsease_hoc":
+        from models.dsease_hoc import Learner
     else:
         assert 0
     return Learner(args)

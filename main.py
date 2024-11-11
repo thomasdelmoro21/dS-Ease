@@ -1,10 +1,11 @@
 import json
 import argparse
+import os
 from trainer import train
 
 def main():
     args = setup_parser().parse_args()
-    param = load_json(args.config)
+    param = load_json(os.path.join("./exps", args.model + ".json"))
     args = vars(args) # Converting argparse Namespace to a dict.
     args.update(param) # Add parameters from json
 
@@ -17,7 +18,7 @@ def load_json(setting_path):
 
 def setup_parser():
     parser = argparse.ArgumentParser(description='Reproduce of multiple pre-trained incremental learning algorthms.')
-    parser.add_argument('--config', type=str, default='./exps/dsease.json',
+    parser.add_argument('--model', type=str, default='dsease',
                         help='Json file of settings.')
     return parser
 

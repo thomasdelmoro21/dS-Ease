@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import torch
+import itertools
 from torch import nn
 from tqdm import tqdm
 from torch import optim
@@ -421,3 +422,29 @@ class Learner(BaseLearner):
             logging.info("Task acc: {}".format(tensor2numpy(task_acc) * 100 / total))
                 
         return np.concatenate(y_pred), np.concatenate(y_true)  # [N, topk]
+
+    def eval_forward(self, loader):
+        self._network.eval()
+
+        ### SUDDIVIDERE IL DATALOADER
+
+            true_labels = []
+            predicted_labels = []
+
+            with torch.no_grad():
+                for _, (_, inputs, targets) in enumerate(loader):
+                    inputs = inputs.to(self._device)
+                    outputs = self._network.forward(inputs, test=True)["logits"]
+                    preds = torch.max(outputs, 1)
+                    true_labels.extend(targets.cpu().numpy())
+                    predicted_labels.extend(preds.cpu().numpy())
+
+            all_label_permutations = list(itertools.permutations(range(5)))
+
+            best_accuracy = 0
+            best_confusion_matrix = None
+            best_permutation = None
+
+            for perm in all_label_permutations:
+                permuted_preds = [perm[label] for label in predicted_labels]
+                # da capire come distribuire le classi

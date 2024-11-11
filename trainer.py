@@ -141,11 +141,12 @@ def _train(args):
                 logging.info("Zero-Shot Performance: {} \n".format(cnn_values_all))
 
             if args["wandb_log"]:
-                if task == 0 and test_future:
-                    zs_matrix = wandb.Table(columns=cnn_keys_all)
-                    zs_matrix.add_data(*cnn_values_all)
-                elif task != 0 and test_future:
-                    zs_matrix.add_data(*cnn_values_all)
+                if test_future:
+                    if task == 0:
+                        zs_matrix = wandb.Table(columns=cnn_keys_all)
+                        zs_matrix.add_data(*cnn_values_all)
+                    else:
+                        zs_matrix.add_data(*cnn_values_all)
 
                 if test_future:
                     wandb.log({
