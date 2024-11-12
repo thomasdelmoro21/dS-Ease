@@ -41,6 +41,7 @@ class Learner(BaseLearner):
         self._lambda = args["lambda"]
         self._mu = args["mu"]
         self.previous_network = None
+        self.model_checkpoint_path = args["model_checkpoint_path"]
 
     def after_task(self):
         self._known_classes = self._total_classes
@@ -63,14 +64,16 @@ class Learner(BaseLearner):
         self._all_classes = data_manager.nb_classes
         #self._network.update_fc(self._total_classes)
 
-        # Save previous network weights
+        # Load previous network weights
         if self._cur_task > 0:
-            self.previous_network = torch.load(args["model_weights_path"])
+            self.previous_network = torch.load(self.model_checkpoint_path)
+            for param in self.previous_network.parameters():
+                param.requires_grad = False
+            print("Previous Network parameters: {}".format(count_parameters(self.previous_network)))
 
         self._network.expand_junction()  # Add a junction layer after the current adapter and increment current task id
-        if self._cur_task > 0:
-            print(count_parameters(self.previous_network))
-        print(count_parameters(self._network))
+            
+        print("Current Network parameters: {} \n".format(count_parameters(self._network)))
         logging.info("Total trainable params: {}".format(count_parameters(self._network, True)))
         logging.info("Learning on {}-{}".format(self._known_classes, self._total_classes))
         # self._network.show_trainable_params()
@@ -97,7 +100,7 @@ class Learner(BaseLearner):
         #self.replace_fc(self.train_loader_for_protonet)
 
         # Save Model Checkpoint
-        torch.save(self._network, args["model_checkpoint_path"])
+        torch.save(self._network, self.model_checkpoint_path)
 
     def _train(self, train_loader, test_loader):
         self._network.to(self._device)
@@ -117,6 +120,13 @@ class Learner(BaseLearner):
             scheduler = self.get_scheduler(optimizer, self.args["later_epochs"])
 
         self._init_train(train_loader, test_loader, optimizer, scheduler)
+        self._network.update_junctions()
+        for param in self._network.backbone.cur_adapter.parameters():
+            param.requires_grad = False
+        
+        if self._cur_task > 0:
+            opt_jun = optim.SGD(self._network.junction.parameters(), lr=self.args["hoc_lr"], momentum=0.9, weight_decay=self.weight_decay)
+            self._train_junction(train_loader, test_loader, opt_jun)
     
     def get_optimizer(self, lr):
         if self.args['optimizer'] == 'sgd':
@@ -179,18 +189,10 @@ class Learner(BaseLearner):
                     -1,
                 )
                 '''
-                output = self._network(inputs, test=False)
+                # Train adapter with proxy junction
+                output = self._network(inputs, hoc=False)
                 logits = output["logits"]
                 loss = F.cross_entropy(logits, aux_targets)
-
-                if self.previous_network is not None:
-                    with torch.no_grad():
-                        feature_old = self.previous_network(inputs)["features"]
-                    norm_feature_old = l2_norm(feature_old)
-                    norm_feature_new = l2_norm(output["features"])
-                    hoc = HocLoss(self._mu)
-                    loss_feat = hoc(norm_feature_new, norm_feature_old, aux_targets)
-                    loss = loss * self._lambda + (1 - self._lambda) * loss_feat
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -217,13 +219,74 @@ class Learner(BaseLearner):
 
         logging.info(info)
 
+    def _train_junction(self, train_loader, test_loader, optimizer):
+        epochs = self.args['hoc_epochs']
+
+        print("Trainable params junction: {}".format(count_parameters(self._network.junction, trainable=True)))
+        
+        prog_bar = tqdm(range(epochs))
+
+        for _, epoch in enumerate(prog_bar):
+            self._network.train()
+
+            losses = 0.0
+            correct, total = 0, 0
+            for i, (_, inputs, targets) in enumerate(train_loader):
+                inputs, targets = inputs.to(self._device), targets.to(self._device)
+
+                aux_targets = targets.clone()
+                '''
+                aux_targets = torch.where(
+                    aux_targets - self._known_classes >= 0,
+                    aux_targets - self._known_classes,
+                    -1,
+                )
+                '''
+                # Train junction layer with hoc loss
+                output = self._network(inputs, hoc=True)
+                logits = output["logits"]
+                loss = F.cross_entropy(logits, aux_targets)
+                
+                if self.previous_network is not None:
+                    with torch.no_grad():
+                        feature_old = self.previous_network(inputs, hoc=True)["features"]
+                    norm_feature_old = l2_norm(feature_old)
+                    norm_feature_new = l2_norm(output["features"])
+                    hoc = HocLoss(self._mu)
+                    loss_feat = hoc(norm_feature_new, norm_feature_old, aux_targets)
+                    loss = loss * self._lambda + (1 - self._lambda) * loss_feat
+                
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                losses += loss.item()
+
+                _, preds = torch.max(logits, dim=1)
+
+                correct += preds.eq(aux_targets.expand_as(preds)).cpu().sum()
+                total += len(aux_targets)
+
+            train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
+
+            info = "Junction Layer Train: Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}".format(
+                    self._cur_task,
+                    epoch + 1,
+                    epochs,
+                    losses / len(train_loader),
+                    train_acc,
+                )
+            prog_bar.set_description(info)
+
+        logging.info(info)
+
+
     def _compute_accuracy(self, model, loader):
         model.eval()
         correct, total = 0, 0
         for i, (_, inputs, targets) in enumerate(loader):
             inputs = inputs.to(self._device)
             with torch.no_grad():
-                outputs = model.forward(inputs, test=True)["logits"]
+                outputs = model.forward(inputs, hoc=True)["logits"]
             predicts = torch.max(outputs, dim=1)[1]          
             correct += (predicts.cpu() == targets).sum()
             total += len(targets)
@@ -241,7 +304,7 @@ class Learner(BaseLearner):
             inputs = inputs.to(self._device)
 
             with torch.no_grad():
-                outputs = self._network.forward(inputs, test=True)["logits"]
+                outputs = self._network.forward(inputs, hoc=True)["logits"]
             predicts = torch.topk(
                 outputs, k=self.topk, dim=1, largest=True, sorted=True
             )[

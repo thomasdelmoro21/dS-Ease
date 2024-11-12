@@ -456,6 +456,8 @@ class HocSimplexEaseNet(BaseNet):
         fixed_weights = self.dsimplex()
         self.dsimplex_layer.weight.requires_grad = False
         self.dsimplex_layer.weight.copy_(fixed_weights)
+
+        self.proxy_junction = nn.Linear(self.out_dim, self.total_cls - 1, bias=False)
             
     def freeze(self):
         for name, param in self.named_parameters():
@@ -488,28 +490,30 @@ class HocSimplexEaseNet(BaseNet):
     def expand_junction(self):
         self._cur_task += 1
 
+        self.proxy_junction.reset_parameters()
+
         if self._cur_task > 0:
             new_junction = nn.Linear(self.out_dim * (self._cur_task + 1), self.total_cls - 1, bias=False)
             with torch.no_grad():
                 new_junction.weight[:, :self.junction.in_features] = self.junction.weight
                 self.junction = new_junction
+    
+    def update_junctions(self):
+        with torch.no_grad():
+            self.junction.weight[:, -self.out_dim:] = self.proxy_junction.weight
 
-    def forward(self, x, test=False):
-        if test == False:
-            vit_out = self.backbone.forward(x, test=True, use_init_ptm=self.use_init_ptm, use_dsimplex=True)  # test=True to obtain features from all adapters, vit_out: type = list of tensors
+    def forward(self, x, hoc=False):
+        if hoc == False:  # Train the Task Adapter
+            vit_out = self.backbone.forward(x, test=False, use_init_ptm=self.use_init_ptm, use_dsimplex=True)  # test=True to obtain features from all adapters, vit_out: type = list of tensors
+            features = self.proxy_junction(vit_out)  # Proxy Junction to train adapter
+            out = self.dsimplex_layer(features)
+        else:  # Train Junction Layer with HOC Loss  /  Test
+            with torch.no_grad():    
+                vit_out = self.backbone.forward(x, test=True, use_init_ptm=self.use_init_ptm, use_dsimplex=True)  # vit_out: type = list of tensors
             vit_out = torch.cat(vit_out, dim=1)  # vit_out: type = tensor
             features = self.junction(vit_out)
             out = self.dsimplex_layer(features)
-        else:
-            vit_out = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm, use_dsimplex=True)  # vit_out: type = list of tensors
-            if self.args["moni_adam"] or (not self.args["use_reweight"]):
-                vit_out = torch.cat(vit_out, dim=1)  # vit_out: type = tensor
-                features = self.junction(vit_out)
-                out = self.dsimplex_layer(features)
 
-            else:  # NOT USED WITH D-SIMPLEX
-                out = self.fc.forward_reweight(x, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.inc, use_init_ptm=self.use_init_ptm, beta=self.beta)
-            
         out = {'logits': out}
         out.update({"features": features})
         return out
