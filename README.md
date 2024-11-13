@@ -89,6 +89,16 @@ This approach is particularly powerful for CIL tasks involving pretrained models
 
 By organizing class representations geometrically, d-Simplex ensures that the overall model maintains coherence as it learns incrementally, preventing the overlap of new and old classes and supporting long-term retention of knowledge.
 
+## Report
+- Ease
+- Ease without semantic mapping and without subspace reweight
+- Ease without semantic mapping but with subspace reweight
+- Ease with forward transfer (TODO)
+- dS-Ease with multiple junction layers, one per adapter
+- dS-Ease with a single junction layer, train new adapters with hoc loss (does not work well)
+- dS-Ease with a single junction layer trained separately from adapters with hoc loss. Adapters trained with proxy junction. (TODO: Find optimal learning hyperparameters)
+
+
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
    
