@@ -9,10 +9,10 @@
     "increment": 5,
     "model_name": "dsease",
     "backbone_type": "vit_base_patch16_224_ease",
-    "device": ["1"],
-    "seed": [10],
+    "device": ["0"],
+    "seed": [110],
     "wandb_log": false,
-    "test_future": true,
+    "test_future": false,
     
     "init_epochs": 20,
     "init_lr": 0.025,

@@ -67,7 +67,7 @@ class Learner(BaseLearner):
         # self._network.show_trainable_params()
         
         self.data_manager = data_manager
-        self.train_val_dataset = data_manager.get_dataset_with_split(np.arange(self._known_classes, self._total_classes), source="train", mode="train", )
+        self.train_val_dataset = data_manager.get_dataset_with_split(np.arange(self._known_classes, self._total_classes), source="train", mode="train", val_samples_per_class=50)
         self.train_loader = DataLoader(self.train_val_dataset[0], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
         self.val_loader = DataLoader(self.train_val_dataset[1], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
         
@@ -189,16 +189,18 @@ class Learner(BaseLearner):
 
             # Validation Accuracy
             self._network.eval()
+            correct, total = 0, 0
             for i, (_, inputs, targets) in enumerate(val_loader):
                 inputs, targets = inputs.to(self._device), targets.to(self._device)
                 output = self._network(inputs, test=False)
                 logits = output["logits"]
                 _, preds = torch.max(logits, dim=1)
                 correct += preds.eq(targets).cpu().sum()
+                total += len(targets)
                 
-            val_acc = np.around(tensor2numpy(correct) * 100 / len(targets), decimals=2)
+            val_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
             
-            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Val_accy ".format(
+            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Val_accy {:.2f}".format(
                     self._cur_task,
                     epoch + 1,
                     epochs,
