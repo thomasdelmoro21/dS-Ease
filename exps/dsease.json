@@ -10,8 +10,8 @@
     "model_name": "dsease",
     "backbone_type": "vit_base_patch16_224_ease",
     "device": ["1"],
-    "seed": [110],
-    "wandb_log": true,
+    "seed": [10],
+    "wandb_log": false,
     "test_future": true,
     
     "init_epochs": 20,

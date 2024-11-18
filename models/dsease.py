@@ -67,8 +67,9 @@ class Learner(BaseLearner):
         # self._network.show_trainable_params()
         
         self.data_manager = data_manager
-        self.train_dataset = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes), source="train", mode="train", )
-        self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+        self.train_val_dataset = data_manager.get_dataset_with_split(np.arange(self._known_classes, self._total_classes), source="train", mode="train", )
+        self.train_loader = DataLoader(self.train_val_dataset[0], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+        self.val_loader = DataLoader(self.train_val_dataset[1], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
         
         self.test_dataset = data_manager.get_dataset(np.arange(0, self._total_classes), source="test", mode="test" )
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
@@ -82,12 +83,12 @@ class Learner(BaseLearner):
         if len(self._multiple_gpus) > 1:
             print('Multiple GPUs')
             self._network = nn.DataParallel(self._network, self._multiple_gpus)
-        self._train(self.train_loader, self.test_loader)
+        self._train(self.train_loader, self.val_loader)
         if len(self._multiple_gpus) > 1:
             self._network = self._network.module
         #self.replace_fc(self.train_loader_for_protonet)
 
-    def _train(self, train_loader, test_loader):
+    def _train(self, train_loader, val_loader):
         self._network.to(self._device)
         
         if self._cur_task == 0 or self.init_cls == self.inc:
@@ -104,7 +105,7 @@ class Learner(BaseLearner):
             optimizer = self.get_optimizer(lr=self.args["later_lr"])
             scheduler = self.get_scheduler(optimizer, self.args["later_epochs"])
 
-        self._init_train(train_loader, test_loader, optimizer, scheduler)
+        self._init_train(train_loader, val_loader, optimizer, scheduler)
     
     def get_optimizer(self, lr):
         if self.args['optimizer'] == 'sgd':
@@ -139,7 +140,7 @@ class Learner(BaseLearner):
 
         return scheduler
 
-    def _init_train(self, train_loader, test_loader, optimizer, scheduler):
+    def _init_train(self, train_loader, val_loader, optimizer, scheduler):
         if self.moni_adam:
             if self._cur_task > self.adapter_num - 1:
                 return
@@ -186,12 +187,24 @@ class Learner(BaseLearner):
                 scheduler.step()
             train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
 
-            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}".format(
+            # Validation Accuracy
+            self._network.eval()
+            for i, (_, inputs, targets) in enumerate(val_loader):
+                inputs, targets = inputs.to(self._device), targets.to(self._device)
+                output = self._network(inputs, test=False)
+                logits = output["logits"]
+                _, preds = torch.max(logits, dim=1)
+                correct += preds.eq(targets).cpu().sum()
+                
+            val_acc = np.around(tensor2numpy(correct) * 100 / len(targets), decimals=2)
+            
+            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Val_accy ".format(
                     self._cur_task,
                     epoch + 1,
                     epochs,
                     losses / len(train_loader),
                     train_acc,
+                    val_acc,
                 )
             prog_bar.set_description(info)
 

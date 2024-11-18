@@ -89,3 +89,4 @@ def l2_norm(input, axis=1):
     output = torch.div(input, norm)
 
     return output
+    
