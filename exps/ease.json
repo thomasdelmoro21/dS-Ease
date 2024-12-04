@@ -12,7 +12,7 @@
     "device": ["1"],
     "seed": [110],
     "wandb_log": true,
-    "test_future": true,
+    "test_future": false,
     
     "init_epochs": 20,
     "init_lr": 0.025,
@@ -27,7 +27,7 @@
     "vpt_type": "Deep",
     "prompt_token_num": 5,
     "ffn_num": 64,
-    "use_diagonal": true,
+    "use_diagonal": false,
     "recalc_sim": true,
     "alpha": 0.1,
     "use_init_ptm": false,

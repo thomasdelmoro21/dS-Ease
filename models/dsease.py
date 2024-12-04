@@ -5,7 +5,7 @@ from torch import nn
 from tqdm import tqdm
 from torch import optim
 from torch.nn import functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from utils.inc_net import EaseNet, SimplexEaseNet
 from models.base import BaseLearner
 from utils.toolkit import tensor2numpy, count_parameters
@@ -67,15 +67,16 @@ class Learner(BaseLearner):
         # self._network.show_trainable_params()
         
         self.data_manager = data_manager
+        '''
         self.train_val_dataset = data_manager.get_dataset_with_split(np.arange(self._known_classes, self._total_classes), source="train", mode="train", val_samples_per_class=50)
         self.train_loader = DataLoader(self.train_val_dataset[0], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
         self.val_loader = DataLoader(self.train_val_dataset[1], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
-        
+        '''
+        self.train_dataset = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes), source="train", mode="train" )
+        self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+
         self.test_dataset = data_manager.get_dataset(np.arange(0, self._total_classes), source="test", mode="test" )
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
-        
-        self.all_cls_test_dataset = data_manager.get_dataset(np.arange(0, self._all_classes), source="test", mode="test" )
-        self.all_cls_test_loader = DataLoader(self.all_cls_test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
 
         #self.train_dataset_for_protonet = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes),source="train", mode="test", )
         #self.train_loader_for_protonet = DataLoader(self.train_dataset_for_protonet, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
@@ -83,12 +84,12 @@ class Learner(BaseLearner):
         if len(self._multiple_gpus) > 1:
             print('Multiple GPUs')
             self._network = nn.DataParallel(self._network, self._multiple_gpus)
-        self._train(self.train_loader, self.val_loader)
+        self._train(self.train_loader, self.test_loader)
         if len(self._multiple_gpus) > 1:
             self._network = self._network.module
         #self.replace_fc(self.train_loader_for_protonet)
 
-    def _train(self, train_loader, val_loader):
+    def _train(self, train_loader, test_loader):
         self._network.to(self._device)
         
         if self._cur_task == 0 or self.init_cls == self.inc:
@@ -105,7 +106,7 @@ class Learner(BaseLearner):
             optimizer = self.get_optimizer(lr=self.args["later_lr"])
             scheduler = self.get_scheduler(optimizer, self.args["later_epochs"])
 
-        self._init_train(train_loader, val_loader, optimizer, scheduler)
+        self._init_train(train_loader, test_loader, optimizer, scheduler)
     
     def get_optimizer(self, lr):
         if self.args['optimizer'] == 'sgd':
@@ -140,7 +141,7 @@ class Learner(BaseLearner):
 
         return scheduler
 
-    def _init_train(self, train_loader, val_loader, optimizer, scheduler):
+    def _init_train(self, train_loader, test_loader, optimizer, scheduler):
         if self.moni_adam:
             if self._cur_task > self.adapter_num - 1:
                 return
@@ -151,7 +152,7 @@ class Learner(BaseLearner):
             epochs = self.args['later_epochs']
         
         prog_bar = tqdm(range(epochs))
-            
+
         for _, epoch in enumerate(prog_bar):
             self._network.train()
 
@@ -186,7 +187,7 @@ class Learner(BaseLearner):
             if scheduler:
                 scheduler.step()
             train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
-
+            '''
             # Validation Accuracy
             self._network.eval()
             correct, total = 0, 0
@@ -199,18 +200,23 @@ class Learner(BaseLearner):
                 total += len(targets)
                 
             val_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
-            
-            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Val_accy {:.2f}".format(
+            '''
+            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}".format(
                     self._cur_task,
                     epoch + 1,
                     epochs,
                     losses / len(train_loader),
                     train_acc,
-                    val_acc,
                 )
             prog_bar.set_description(info)
-
+            '''
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                best_val_model = self._network.state_dict()
+            '''
         logging.info(info)
+
+        #self._network.load_state_dict(best_val_model)
 
     def _compute_accuracy(self, model, loader):
         model.eval()
@@ -219,7 +225,7 @@ class Learner(BaseLearner):
             inputs = inputs.to(self._device)
             with torch.no_grad():
                 outputs = model.forward(inputs, test=True)["logits"]
-            predicts = torch.max(outputs, dim=1)[1]          
+            predicts = torch.max(outputs, dim=1)[1]
             correct += (predicts.cpu() == targets).sum()
             total += len(targets)
 
@@ -270,3 +276,35 @@ class Learner(BaseLearner):
             logging.info("Task acc: {}".format(tensor2numpy(task_acc) * 100 / total))
                 
         return np.concatenate(y_pred), np.concatenate(y_true)  # [N, topk]
+
+    def eval_transfer(self):
+        self._network.eval()
+        print("Evaluating backward and forward transfer performance...")
+        accys = dict()
+        for task in range(0, self.data_manager.nb_tasks):
+            offset1 = self.init_cls + (task - 1) * self.inc
+            offset2 = self.init_cls + task * self.inc
+            task_labels = np.arange(offset1, offset2)
+            task_dataset = self.data_manager.get_dataset(task_labels, source="test", mode="test")
+            task_loader = DataLoader(task_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
+
+            predictions, gts = torch.tensor([]), torch.tensor([])
+            for _, (_, inputs, targets) in enumerate(task_loader):
+                inputs = inputs.to(self._device)
+                
+                with torch.no_grad():
+                    outputs = self._network.forward(inputs, test=True)["logits"]
+                    if offset1 > 0:
+                        outputs[:, :offset1].data.fill_(-10e10)
+                    if offset2 < self._all_classes:
+                        outputs[:, offset2:self._all_classes].data.fill_(-10e10)
+                preds = torch.max(outputs, dim=1)[1]
+
+                predictions = torch.cat((predictions, preds.cpu()), dim=0)
+                gts = torch.cat((gts, targets), dim=0)
+
+            acc = (predictions == gts).sum() * 100 / len(gts)
+            accys["{}-{}".format(offset1, offset2)] = acc.item()
+
+        return accys
+            

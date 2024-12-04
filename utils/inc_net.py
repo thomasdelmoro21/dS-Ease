@@ -408,23 +408,19 @@ class SimplexEaseNet(BaseNet):
             out = self.dsimplex_layer(out)
         else:
             vit_out = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm, use_dsimplex=True)
-            if self.args["moni_adam"] or (not self.args["use_reweight"]):
-                if mean_first:
-                    features = []
-                    for x, junction in zip(vit_out, self.junction_list):
-                        features.append(junction(x))
-                    out = torch.mean(torch.stack(features), dim=0)
-                    out = self.dsimplex_layer(out)
-                else:
-                    out = []
-                    for x, junction in zip(vit_out, self.junction_list):
-                        x = junction(x)
-                        out.append(self.dsimplex_layer(x))
-                    out = torch.mean(torch.stack(out), dim=0)
-
+            if mean_first:
+                features = []
+                for x, junction in zip(vit_out, self.junction_list):
+                    features.append(junction(x))
+                out = torch.mean(torch.stack(features), dim=0)
+                out = self.dsimplex_layer(out)
             else:
-                out = self.fc.forward_reweight(x, cur_task=self._cur_task, alpha=self.alpha, init_cls=self.init_cls, inc=self.inc, use_init_ptm=self.use_init_ptm, beta=self.beta)
-            
+                out = []
+                for x, junction in zip(vit_out, self.junction_list):
+                    x = junction(x)
+                    out.append(self.dsimplex_layer(x))
+                out = torch.mean(torch.stack(out), dim=0)
+
         out = {'logits': out}
         out.update({"features": vit_out})
         return out

@@ -135,10 +135,10 @@ def _train(args):
 
             if test_future:
                 # Zero-Shot on all classes
-                cnn_keys_all = [key for key in cnn_accy_all["grouped"].keys() if '-' in key]
-                cnn_values_all = [cnn_accy_all["grouped"][key] for key in cnn_keys_all]
+                cnn_keys_all = list(cnn_accy_all.keys())
+                cnn_values_all = list(cnn_accy_all.values())
                 cnn_matrix_all.append(cnn_values_all)
-                logging.info("Zero-Shot Performance: {} \n".format(cnn_values_all))
+                logging.info("Zero-Shot Performance: {} \n".format(cnn_accy_all))
 
             if args["wandb_log"]:
                 if test_future:
@@ -154,7 +154,7 @@ def _train(args):
                         "Top 1 curve": cnn_curve["top1"],
                         "Top 5 curve": cnn_curve["top5"],
                         "Average Accuracy": avg_acc,
-                        "Zero-Shot Accuracy": zs_matrix
+                        "Zero-Shot Accuracy": copy.copy(zs_matrix)
                     })
                 else:
                     wandb.log({

@@ -423,28 +423,32 @@ class Learner(BaseLearner):
                 
         return np.concatenate(y_pred), np.concatenate(y_true)  # [N, topk]
 
-    def eval_forward(self, loader):
+    def eval_transfer(self):
         self._network.eval()
+        print("Evaluating backward and forward transfer performance...")
+        accys = dict()
+        for task in range(0, self.data_manager.nb_tasks):
+            offset1 = self.init_cls + (task - 1) * self.inc
+            offset2 = self.init_cls + task * self.inc
+            task_labels = np.arange(offset1, offset2)
+            task_dataset = self.data_manager.get_dataset(task_labels, source="test", mode="test")
+            task_loader = DataLoader(task_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
 
-        ### SUDDIVIDERE IL DATALOADER
-
-            true_labels = []
-            predicted_labels = []
-
-            with torch.no_grad():
-                for _, (_, inputs, targets) in enumerate(loader):
-                    inputs = inputs.to(self._device)
+            predictions, gts = torch.tensor([]), torch.tensor([])
+            for _, (_, inputs, targets) in enumerate(task_loader):
+                inputs = inputs.to(self._device)
+                
+                with torch.no_grad():
                     outputs = self._network.forward(inputs, test=True)["logits"]
-                    preds = torch.max(outputs, 1)
-                    true_labels.extend(targets.cpu().numpy())
-                    predicted_labels.extend(preds.cpu().numpy())
+                    if offset1 > 0:
+                        outputs[:, :offset1].data.fill_(-10e10)
+                    if offset2 < self._all_classes:
+                        outputs[:, offset2:self._all_classes].data.fill_(-10e10)
+                preds = torch.max(outputs, dim=1)[1]
 
-            all_label_permutations = list(itertools.permutations(range(5)))
+                predictions = torch.cat((predictions, preds.cpu()), dim=0)
+                gts = torch.cat((gts, targets), dim=0)
 
-            best_accuracy = 0
-            best_confusion_matrix = None
-            best_permutation = None
-
-            for perm in all_label_permutations:
-                permuted_preds = [perm[label] for label in predicted_labels]
-                # da capire come distribuire le classi
+            acc = (predictions == gts).sum() * 100 / len(gts)
+            accys["{}-{}".format(offset1, offset2)] = acc.item()
+        return accys
