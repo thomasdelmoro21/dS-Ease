@@ -354,6 +354,7 @@ class SimplexEaseNet(BaseNet):
         # D-SIMPLEX
         self.total_cls = total_cls
 
+        self.reweight = args["concat_reweight"]
         self.junction_list = nn.ModuleList()
         self.add_new_junction(self._device)
         self.dsimplex_layer = nn.Linear(self.total_cls - 1, self.total_cls, bias=False)
@@ -401,29 +402,40 @@ class SimplexEaseNet(BaseNet):
             self.add_new_junction(device)
 
     def forward(self, x, test=False):
-        mean_first = True
         if test == False:
             vit_out = self.backbone.forward(x, False)
             out = self.junction_list[self._cur_task](vit_out)
             out = self.dsimplex_layer(out)
         else:
             vit_out = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm, use_dsimplex=True)
-            if mean_first:
+            if not self.reweight:
                 features = []
                 for x, junction in zip(vit_out, self.junction_list):
                     features.append(junction(x))
                 out = torch.mean(torch.stack(features), dim=0)
                 out = self.dsimplex_layer(out)
             else:
-                out = []
+                features = []
                 for x, junction in zip(vit_out, self.junction_list):
-                    x = junction(x)
-                    out.append(self.dsimplex_layer(x))
-                out = torch.mean(torch.stack(out), dim=0)
-
+                    features.append(junction(x).unsqueeze(1))
+                out = torch.cat(features, dim=1)
+                out = self.dsimplex_layer(out)
+                out = self.dsimplex_reweight(out)
+            
         out = {'logits': out}
         out.update({"features": vit_out})
         return out
+
+    def dsimplex_reweight(self, x):
+        x.permute(1, 2, 0)
+        for i, adapt in enumerate(x):
+            for j, cls in enumerate(adapt):
+                if j >= i * self.inc and j < (i + 1) * self.inc:
+                    cls = cls
+                else:
+                    cls = cls * self.alpha
+        x.permute(2, 0, 1)
+        return torch.mean(x, dim=1)
 
     def show_trainable_params(self):
         for name, param in self.named_parameters():
