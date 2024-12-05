@@ -24,6 +24,7 @@ class Learner(BaseLearner):
         self.min_lr = args["min_lr"] if args["min_lr"] is not None else 1e-8
         self.init_cls = args["init_cls"]
         self.inc = args["increment"]
+        self.use_val = args["use_val"]
 
         self.use_exemplars = args["use_old_data"]
         self.use_init_ptm = args["use_init_ptm"]
@@ -67,13 +68,14 @@ class Learner(BaseLearner):
         # self._network.show_trainable_params()
         
         self.data_manager = data_manager
-        '''
-        self.train_val_dataset = data_manager.get_dataset_with_split(np.arange(self._known_classes, self._total_classes), source="train", mode="train", val_samples_per_class=50)
-        self.train_loader = DataLoader(self.train_val_dataset[0], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
-        self.val_loader = DataLoader(self.train_val_dataset[1], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
-        '''
-        self.train_dataset = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes), source="train", mode="train" )
-        self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+        
+        if self.use_val:
+            self.train_val_dataset = data_manager.get_dataset_with_split(np.arange(self._known_classes, self._total_classes), source="train", mode="train", val_samples_per_class=50)
+            self.train_loader = DataLoader(self.train_val_dataset[0], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+            self.val_loader = DataLoader(self.train_val_dataset[1], batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
+        else:
+            self.train_dataset = data_manager.get_dataset(np.arange(self._known_classes, self._total_classes), source="train", mode="train" )
+            self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=num_workers)
 
         self.test_dataset = data_manager.get_dataset(np.arange(0, self._total_classes), source="test", mode="test" )
         self.test_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=num_workers)
@@ -84,7 +86,10 @@ class Learner(BaseLearner):
         if len(self._multiple_gpus) > 1:
             print('Multiple GPUs')
             self._network = nn.DataParallel(self._network, self._multiple_gpus)
-        self._train(self.train_loader, self.test_loader)
+        if self.use_val:
+            self._train(self.train_loader, self.val_loader)
+        else:
+            self._train(self.train_loader, self.test_loader)
         if len(self._multiple_gpus) > 1:
             self._network = self._network.module
         #self.replace_fc(self.train_loader_for_protonet)
@@ -153,6 +158,8 @@ class Learner(BaseLearner):
         
         prog_bar = tqdm(range(epochs))
 
+        best_val_acc = 0
+
         for _, epoch in enumerate(prog_bar):
             self._network.train()
 
@@ -187,36 +194,55 @@ class Learner(BaseLearner):
             if scheduler:
                 scheduler.step()
             train_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
-            '''
-            # Validation Accuracy
-            self._network.eval()
-            correct, total = 0, 0
-            for i, (_, inputs, targets) in enumerate(val_loader):
-                inputs, targets = inputs.to(self._device), targets.to(self._device)
-                output = self._network(inputs, test=False)
-                logits = output["logits"]
-                _, preds = torch.max(logits, dim=1)
-                correct += preds.eq(targets).cpu().sum()
-                total += len(targets)
+            
+            if self.use_val:
+                # Validation Accuracy
+                self._network.eval()
+                correct, total = 0, 0
+                for i, (_, inputs, targets) in enumerate(test_loader):
+                    inputs, targets = inputs.to(self._device), targets.to(self._device)
+                    with torch.no_grad():
+                        output = self._network(inputs, test=False)
+                    logits = output["logits"]
+                    _, preds = torch.max(logits, dim=1)
+                    correct += preds.eq(targets).cpu().sum()
+                    total += len(targets)
+                    
+                val_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
                 
-            val_acc = np.around(tensor2numpy(correct) * 100 / total, decimals=2)
-            '''
-            info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}".format(
-                    self._cur_task,
-                    epoch + 1,
-                    epochs,
-                    losses / len(train_loader),
-                    train_acc,
-                )
-            prog_bar.set_description(info)
-            '''
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
-                best_val_model = self._network.state_dict()
-            '''
+                info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}, Val_accy {:.2f}".format(
+                        self._cur_task,
+                        epoch + 1,
+                        epochs,
+                        losses / len(train_loader),
+                        train_acc,
+                        val_acc
+                    )
+                prog_bar.set_description(info)
+                
+                if val_acc > best_val_acc:
+                    best_val_acc = val_acc
+                    adapter_weights = [param.clone() for param in self._network.backbone.cur_adapter.parameters()]
+                    junction_weights = [param.clone() for param in self._network.junction_list[self._cur_task].parameters()]
+            
+            else:
+                info = "Task {}, Epoch {}/{} => Loss {:.3f}, Train_accy {:.2f}".format(
+                        self._cur_task,
+                        epoch + 1,
+                        epochs,
+                        losses / len(train_loader),
+                        train_acc
+                    )
+                prog_bar.set_description(info)
+
         logging.info(info)
 
-        #self._network.load_state_dict(best_val_model)
+        if self.use_val:
+            # Load the best weights
+            for param, new_param in zip(adapter_weights, self._network.backbone.cur_adapter.parameters()):
+                new_param.data.copy_(param)
+            for param, new_param in zip(junction_weights, self._network.junction_list[self._cur_task].parameters()):
+                new_param.data.copy_(param)
 
     def _compute_accuracy(self, model, loader):
         model.eval()

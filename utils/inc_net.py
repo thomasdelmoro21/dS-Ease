@@ -427,14 +427,14 @@ class SimplexEaseNet(BaseNet):
         return out
 
     def dsimplex_reweight(self, x):
-        x.permute(1, 2, 0)
+        x = x.permute(1, 2, 0)
         for i, adapt in enumerate(x):
             for j, cls in enumerate(adapt):
                 if j >= i * self.inc and j < (i + 1) * self.inc:
-                    cls = cls
+                    pass
                 else:
-                    cls = cls * self.alpha
-        x.permute(2, 0, 1)
+                    x[i, j] = cls * self.alpha
+        x = x.permute(2, 0, 1)
         return torch.mean(x, dim=1)
 
     def show_trainable_params(self):
