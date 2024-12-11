@@ -167,7 +167,7 @@ def get_backbone(args, pretrained=False):
             return model
     elif '_ease' in name:
         ffn_num = args["ffn_num"]
-        if args["model_name"] == "ease" or args["model_name"] == "dsease" or args["model_name"] == "dsease_hoc":
+        if args["model_name"] == "ease" or args["model_name"] == "dsease" or args["model_name"] == "dsease_hoc" or args["model_name"] == "psrd_ease":
             from backbone import vit_ease
             from easydict import EasyDict
             tuning_config = EasyDict(
@@ -530,3 +530,134 @@ class HocSimplexEaseNet(BaseNet):
         for name, param in self.named_parameters():
             if param.requires_grad:
                 print(name, param.numel())
+
+
+class PSRDEaseNet(BaseNet):
+    def __init__(self, args, pretrained=True):
+        super().__init__(args, pretrained)
+        self.args = args
+        self.inc = args["increment"]
+        self.init_cls = args["init_cls"]
+        self._cur_task = -1
+        self.out_dim =  self.backbone.out_dim
+        self.fc = None
+        self.use_init_ptm = args["use_init_ptm"]
+        self.alpha = args["alpha"]
+        self.beta = args["beta"]
+
+        self.head = ProjectionMLP(self.out_dim, self.args["head_hidden_dim"], self.args["head_proj_dim"], batch_norm=self.args["head_batch_norm"], num_layers=self.args["head_num_layers"])
+    
+        self.prototypes = Prototypes(
+            feat_dim=self.out_dim,
+            n_classes_per_task=self.inc,
+            n_tasks=self.args["num_tasks"],
+            half_iid=self.args["half_iid"],
+        )
+
+    def freeze(self):
+        for name, param in self.named_parameters():
+            param.requires_grad = False
+            # print(name)
+    
+    @property
+    def feature_dim(self):
+        if self.use_init_ptm:
+            return self.out_dim * (self._cur_task + 2)
+        else:
+            return self.out_dim * (self._cur_task + 1)
+
+    def extract_vector(self, x):
+        return self.backbone(x)
+
+    def forward(self, x, test=False):
+        out = dict()
+        if test == False:
+            features = self.backbone.forward(x, False)
+            proj_features = self.head(features)
+        else:
+            features = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm)
+            proj_features = self.head(features)
+
+        out.update({"features": features, "proj_features": proj_features})   
+        return out
+
+    def show_trainable_params(self):
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                print(name, param.numel())
+
+
+class ProjectionMLP(nn.Module):
+    def __init__(self, dim_in, hidden_dim, feat_dim, batch_norm, num_layers):
+        super(ProjectionMLP, self).__init__()
+
+        self.layers = self._make_layers(
+            dim_in, hidden_dim, feat_dim, batch_norm, num_layers
+        )
+
+    def _make_layers(self, dim_in, hidden_dim, feat_dim, batch_norm, num_layers):
+        layers = []
+        layers.append(add_linear(dim_in, hidden_dim, batch_norm=batch_norm, relu=True))
+
+        for _ in range(num_layers - 2):
+            layers.append(
+                add_linear(hidden_dim, hidden_dim, batch_norm=batch_norm, relu=True)
+            )
+
+        layers.append(add_linear(hidden_dim, feat_dim, batch_norm=False, relu=False))
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.layers(x)
+
+
+def add_linear(dim_in, dim_out, batch_norm, relu):
+    layers = []
+    layers.append(nn.Linear(dim_in, dim_out))
+    if batch_norm:
+        layers.append(nn.BatchNorm1d(dim_out))
+    if relu:
+        layers.append(nn.ReLU(inplace=True))
+
+    return nn.Sequential(*layers)
+
+
+class Prototypes(nn.Module):
+        def __init__(
+            self,
+            feat_dim: int,
+            n_classes_per_task: int,
+            n_tasks: int,
+            half_iid: bool = False,
+        ):
+            super(Prototypes, self).__init__()
+
+            self.heads = self._create_prototypes(
+                dim_in=feat_dim,
+                n_classes=n_classes_per_task,
+                n_heads=n_tasks,
+                half_iid=half_iid,
+            )
+
+        def _create_prototypes(
+            self, dim_in: int, n_classes: int, n_heads: int, half_iid: bool = False
+        ) -> torch.nn.ModuleDict:
+
+            first_head_id = 0
+            if half_iid:
+                first_head_id = (n_heads // 2) - 1
+                first_head_n_classes = n_classes * (n_heads // 2)
+
+            layers = {}
+            for t in range(first_head_id, n_heads):
+
+                if half_iid and (t == first_head_id):
+                    layers[str(t)] = nn.Linear(dim_in, first_head_n_classes, bias=False)
+                else:
+                    layers[str(t)] = nn.Linear(dim_in, n_classes, bias=False)
+
+            return nn.ModuleDict(layers)
+
+        def forward(self, x: torch.FloatTensor, task_id: int) -> torch.FloatTensor:
+            out = self.heads[str(task_id)](x)
+            return out

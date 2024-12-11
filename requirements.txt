@@ -4,3 +4,6 @@ scipy
 tqdm
 easydict
 wandb
+kornia
+fvcore
+pandas

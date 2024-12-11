@@ -7,17 +7,18 @@
     "shuffle": true,
     "init_cls": 5,
     "increment": 5,
-    "model_name": "ease",
+    "num_tasks": 20,
+    "model_name": "psrd_ease",
     "backbone_type": "vit_base_patch16_224_ease",
     "device": ["1"],
     "seed": [100],
-    "wandb_log": true,
+    "wandb_log": false,
     "test_future": false,
     
     "init_epochs": 20,
-    "init_lr": 0.025,
+    "init_lr": 0.1,
     "later_epochs": 20,
-    "later_lr": 0.025,
+    "later_lr": 0.1,
     "batch_size": 48,
     "weight_decay": 0.0005,
     "min_lr": 0,
@@ -36,5 +37,16 @@
     "use_reweight": false,
     
     "moni_adam": false,
-    "adapter_num": -1
+    "adapter_num": -1,
+
+    "half_iid": false,
+    "head_hidden_dim": 512,
+    "head_proj_dim": 128,
+    "head_num_layers": 3,
+    "head_batch_norm": false,
+
+    "supcon_temperature": 0.1,
+    "distill_coef": 4,
+    "distill_temp": 1,
+    "prototypes_coef": 2
 }
