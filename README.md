@@ -89,15 +89,24 @@ This approach is particularly powerful for CIL tasks involving pretrained models
 
 By organizing class representations geometrically, d-Simplex ensures that the overall model maintains coherence as it learns incrementally, preventing the overlap of new and old classes and supporting long-term retention of knowledge.
 
+## PSRD
+**PSRD-Ease** comes from the idea of the paper [N. Asadi et al. 2023](https://arxiv.org/abs/2303.14771): The method consists of incrementally training the network with a loss that combines various representation learning components. Th loss is composed by three distinct terms:
+- Supervised Constrastive Loss: it is a contrastive loss computed on features obtained from the classes and projected to a less-dimension space.
+- Prototypes Loss: it is a classic linear loss based on the similarity between the representation of a class and the prototype associated to the same class.
+- Relation Distillation Loss: it is a KL-Divergence that between prototype-sample similarity distribution estimated with the previous model and the current model.
+The loss ideally guarantees orthogonality between the task classes representations. The method, originally, is implemented using a simple architecture, similar to a simple ResNet, and it is specified to evaluate task-incremental performance.  
+However, with little changes, it can be adapted to our architecture and our class-incremental learning problem to obtain a hybrid method that combines Ease typical subspaces with this revolutionary loss.
+
 ## Report
 - Ease
 - Ease without semantic mapping and without subspace reweight
 - Ease without semantic mapping but with subspace reweight
-- Ease with forward transfer (TODO)
+- Ease with forward transfer
 - dS-Ease with multiple junction layers, one per adapter
-- dS-Ease with a single junction layer, train new adapters with hoc loss (does not work well)
-- dS-Ease with a single junction layer trained separately from adapters with hoc loss. Adapters trained with proxy junction. (TODO: Find optimal learning hyperparameters)
-
+- dS-Ease with a single junction layer, train new adapters with hoc loss.
+- dS-Ease with a single junction layer trained separately from adapters with hoc loss. Adapters trained with proxy junction.
+- PSRD-Ease training the adapters with distillation loss based only on the immediately previous prototypes.
+- PSRD-Ease training the adapters with distillation loss based on the mean of all previous prototypes.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
