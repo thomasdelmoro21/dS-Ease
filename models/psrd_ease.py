@@ -56,9 +56,17 @@ class Learner(BaseLearner):
         self.prev_prototypes = None
 
     def after_task(self):
+        self.prev_model = copy.deepcopy(self._network)
+        self.freeze_prev_model()
+
         self._known_classes = self._total_classes
-        self._network.freeze()
+        #self._network.freeze()
         self._network.backbone.add_adapter_to_list()
+
+    def freeze_prev_model(self):
+        self._network.backbone.freeze()
+        for i in range(self._cur_task + 1):
+            self._network.prototypes.heads[str(i)].weight.requires_grad = False
     
     def get_cls_range(self, task_id):
         if task_id == 0:
@@ -87,12 +95,12 @@ class Learner(BaseLearner):
         new_model_preds = dict()
 
         with torch.inference_mode():
-            old_features = self.prev_model.return_hidden(data)
+            old_features = self.prev_model(data, test=False)["features"]
 
         for task_id in range(self.first_task_id, current_task_id):
             with torch.inference_mode():
                 old_model_preds[task_id] = self._get_scores(
-                    old_features, prototypes=self.prev_prototypes, task_id=task_id
+                    old_features, prototypes=self.prev_model.prototypes, task_id=task_id
                 )
             new_model_preds[task_id] = self._get_scores(
                 features, prototypes=self._network.prototypes, task_id=task_id
@@ -132,7 +140,7 @@ class Learner(BaseLearner):
         feat_norm = torch.norm(features, dim=1, p=2)
 
         if not current_task_id == self.first_task_id:
-            labels -= current_task_id * self.args.n_classes_per_task  # shift targets
+            labels -= current_task_id * self.inc  # shift targets
         indecies = labels.unsqueeze(1)
         out = nobout.gather(1, indecies).squeeze()
         out = out / feat_norm
@@ -162,10 +170,6 @@ class Learner(BaseLearner):
         loss = -log_prob.sum() / log_prob.size(0)
 
         return loss
-
-    def record_state(self):
-        self.prev_model = copy.deepcopy(self._network)
-        self.prev_prototypes = copy.deepcopy(self._network.prototypes)
 
     def incremental_train(self, data_manager):
         self._cur_task += 1
@@ -296,7 +300,7 @@ class Learner(BaseLearner):
 
                 # calculate the accuracy
                 with torch.no_grad():
-                    preds = self.predict(f1, task_id=self._cur_task)
+                    preds = self.predict_task(f1, task_id=self._cur_task)
                 preds = torch.argmax(preds, dim=1)
                 correct += preds.eq(targets.expand_as(preds)).cpu().sum()
                 total += len(targets)
@@ -318,21 +322,13 @@ class Learner(BaseLearner):
 
         logging.info(info)
 
+    def predict_task(self, features, task_id):
+        self._network.eval()
+        return self._network.predict_task(features, task_id)
+    
     def predict(self, features, task_id):
-        if task_id is not None:  # test = False --> use only current adapter
-            # Copy previous weights 
-            no_normed_weights = self._network.prototypes.heads[str(task_id)].weight.data.clone()
-            # Normalize weights and features
-            self._network.prototypes.heads[str(task_id)].weight.copy_(F.normalize(self._network.prototypes.heads[str(task_id)].weight.data, dim=1, p=2))
-            features = F.normalize(features, dim=1, p=2)  # pass through projection head
-
-            output = self._network.prototypes(features, task_id=task_id)
-            self._network.prototypes.heads[str(task_id)].weight.copy_(no_normed_weights)
-
-        else:  # test = True --> use all adapters
-            pass
-
-        return output
+        self._network.eval()
+        return self._network.predict(features, task_id)
 
     def _compute_accuracy(self, model, loader):
         model.eval()
@@ -358,7 +354,8 @@ class Learner(BaseLearner):
             inputs = inputs.to(self._device)
 
             with torch.no_grad():
-                outputs = self._network.forward(inputs, test=True)["logits"]
+                features = self._network(inputs, test=True)["features"]
+                outputs = self.predict(features, self._cur_task)
             predicts = torch.topk(
                 outputs, k=self.topk, dim=1, largest=True, sorted=True
             )[

@@ -2,6 +2,7 @@ import copy
 import logging
 import torch
 from torch import nn
+from torch.nn import functional as F
 from backbone.linears import SimpleLinear, SplitCosineLinear, CosineLinear, EaseCosineLinear, SimpleContinualLinear
 import timm
 
@@ -576,10 +577,44 @@ class PSRDEaseNet(BaseNet):
             proj_features = self.head(features)
         else:
             features = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm)
-            proj_features = self.head(features)
+            proj_features = None
 
         out.update({"features": features, "proj_features": proj_features})   
         return out
+
+    def predict_task(self, features, task_id):
+        # Copy previous weights 
+        no_normed_weights = self.prototypes.heads[str(task_id)].weight.data.clone()
+        # Normalize weights and features
+        self.prototypes.heads[str(task_id)].weight.copy_(F.normalize(self.prototypes.heads[str(task_id)].weight.data, dim=1, p=2))
+        features = F.normalize(features, dim=1, p=2)  # pass through projection head
+
+        output = self.prototypes(features, task_id=task_id)
+        self.prototypes.heads[str(task_id)].weight.copy_(no_normed_weights)
+
+        return output
+    
+    def predict(self, features, task_id):
+        '''
+        heads = list(self.prototypes.heads.values())
+        
+        prototypes = heads[0].weight.data.clone()
+        for head in heads[1:]:
+            prototypes = torch.cat([prototypes, head.weight.data.clone()], dim=0)
+
+        prototypes = F.normalize(prototypes, dim=1, p=2)
+        features = F.normalize(features, dim=1, p=2)  # pass through projection head
+
+        output = F.linear(input=features, weight=prototypes)
+        '''
+        heads = nn.ModuleList(self.prototypes.heads.values())
+        output = []
+        for i in range(task_id + 1):
+            prototypes = F.normalize(heads[i].weight.data.clone(), dim=1, p=2)
+            features = F.normalize(features, dim=1, p=2)
+            output.append(F.linear(input=features[:, i * self.out_dim : (i + 1) * self.out_dim], weight=prototypes))
+        output = torch.cat(output, dim=1)
+        return output
 
     def show_trainable_params(self):
         for name, param in self.named_parameters():
