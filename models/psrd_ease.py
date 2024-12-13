@@ -298,19 +298,27 @@ class Learner(BaseLearner):
                 # Prototypes Loss
                 loss_p = self.linear_loss(features.detach().clone(), labels=targets.repeat(2), current_task_id=self._cur_task)
 
+                # Cross Entropy Loss
+                aux_targets = targets.clone()
+                aux_targets = torch.where(
+                    aux_targets - self._known_classes >= 0,
+                    aux_targets - self._known_classes,
+                    -1,
+                )
+                logits = self._network.prototypes.heads[str(self._cur_task)](f1)
+                _, preds = torch.max(logits, dim=1)
+                correct += preds.eq(aux_targets.expand_as(preds)).cpu().sum()
+                total += len(targets)
+
+                cross_entropy_loss = F.cross_entropy(logits, aux_targets)
+
                 loss = supcon_loss + self.prototypes_coef * loss_p + self.distill_coef * loss_d
+                # loss = cross_entropy_loss + self.prototypes_coef * loss_p + self.distill_coef * loss_d
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 losses += loss.item()
-
-                # calculate the accuracy
-                with torch.no_grad():
-                    preds = self.predict_task(f1, task_id=self._cur_task)
-                preds = torch.argmax(preds, dim=1)
-                correct += preds.eq(targets.expand_as(preds)).cpu().sum()
-                total += len(targets)
 
                 print(f"Epoch: {epoch + 1} / {epochs} | {i} / {len(train_loader)} - Loss: {loss}", end="\r",)
 
