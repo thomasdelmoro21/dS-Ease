@@ -95,13 +95,20 @@ class Learner(BaseLearner):
         new_model_preds = dict()
 
         with torch.inference_mode():
-            old_features = self.prev_model(data, test=False)["features"]
+            #old_features = self.prev_model(data, test=False)["features"]
+            old_features = self.prev_model(data, test=True)["features"]
 
         for task_id in range(self.first_task_id, current_task_id):
             with torch.inference_mode():
+                '''
                 old_model_preds[task_id] = self._get_scores(
                     old_features, prototypes=self.prev_model.prototypes, task_id=task_id
                 )
+                '''
+                old_model_preds[task_id] = self._get_scores(
+                    old_features[:, task_id * self._network.out_dim : (task_id+1) * self._network.out_dim], prototypes=self.prev_model.prototypes, task_id=task_id
+                )
+
             new_model_preds[task_id] = self._get_scores(
                 features, prototypes=self._network.prototypes, task_id=task_id
             )
