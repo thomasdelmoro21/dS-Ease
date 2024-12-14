@@ -15,7 +15,7 @@
     "wandb_log": true,
     "test_future": false,
     
-    "init_epochs": 20,
+    "init_epochs": 50,
     "init_lr": 0.025,
     "later_epochs": 20,
     "later_lr": 0.025,
@@ -44,6 +44,8 @@
     "head_proj_dim": 128,
     "head_num_layers": 3,
     "head_batch_norm": false,
+
+    "use_last_features": false,
 
     "supcon_temperature": 0.1,
     "distill_coef": 4,
