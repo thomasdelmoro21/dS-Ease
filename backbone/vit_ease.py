@@ -327,7 +327,7 @@ class VisionTransformer(nn.Module):
 
         return outcome
 
-    def forward_test(self, x, use_init_ptm=False):
+    def forward_test(self, x, use_init_ptm=False, prev_model=False):
         B = x.shape[0]
         x = self.patch_embed(x)
 
@@ -351,21 +351,22 @@ class VisionTransformer(nn.Module):
                 x = self.blocks[j](x, adapt)
             x = self.norm(x)
             features.append(x)
-        
-        x = copy.deepcopy(x_init)
-        for i in range(len(self.blocks)):
-            adapt = self.cur_adapter[i]
-            x = self.blocks[i](x, adapt)
-        x = self.norm(x)
-        features.append(x)
+
+        if not prev_model:
+            x = copy.deepcopy(x_init)
+            for i in range(len(self.blocks)):
+                adapt = self.cur_adapter[i]
+                x = self.blocks[i](x, adapt)
+            x = self.norm(x)
+            features.append(x)
         
         return features
 
-    def forward(self, x, test=False, use_init_ptm=False, use_dsimplex=False):
+    def forward(self, x, test=False, use_init_ptm=False, use_dsimplex=False, prev_model=False):
         if not test:
             output = self.forward_train(x)
         else:
-            features = self.forward_test(x, use_init_ptm)
+            features = self.forward_test(x, use_init_ptm, prev_model=prev_model)
             if not use_dsimplex:  # EASE
                 output = torch.Tensor().to(features[0].device)
                 for x in features:

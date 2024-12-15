@@ -52,11 +52,7 @@ class Learner(BaseLearner):
         self.distill_coef = self.args["distill_coef"]
         self.distill_temp = self.args["distill_temp"]
 
-        self.prev_model = None
-        self.prev_prototypes = None
-
     def after_task(self):
-        self.prev_model = copy.deepcopy(self._network)
         self.freeze_prev_model()
 
         self._known_classes = self._total_classes
@@ -88,27 +84,24 @@ class Learner(BaseLearner):
     def relation_distillation_loss(  # Ld
         self, features: torch.FloatTensor, data: torch.FloatTensor, current_task_id: int) -> torch.FloatTensor:
 
-        if self.prev_model is None:
+        if self._cur_task == 0:
             return 0.0
 
         old_model_preds = dict()
         new_model_preds = dict()
 
         with torch.inference_mode():
-            if self.args["use_last_features"]:
-                old_features = self.prev_model(data, test=False)["features"]
-            else:
-                old_features = self.prev_model(data, test=True)["features"]
+            old_features = self._network(data, test=True, prev_model=True)["features"]
 
         for task_id in range(self.first_task_id, current_task_id):
             with torch.inference_mode():
                 if self.args["use_last_features"]:
                     old_model_preds[task_id] = self._get_scores(
-                        old_features, prototypes=self.prev_model.prototypes, task_id=task_id
+                        old_features, prototypes=self._network.prototypes, task_id=task_id
                     )
                 else:
                     old_model_preds[task_id] = self._get_scores(
-                        old_features[:, task_id * self._network.out_dim : (task_id+1) * self._network.out_dim], prototypes=self.prev_model.prototypes, task_id=task_id
+                        old_features[:, task_id * self._network.out_dim : (task_id+1) * self._network.out_dim], prototypes=self._network.prototypes, task_id=task_id
                     )
 
             new_model_preds[task_id] = self._get_scores(

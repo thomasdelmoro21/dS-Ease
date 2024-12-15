@@ -570,13 +570,13 @@ class PSRDEaseNet(BaseNet):
     def extract_vector(self, x):
         return self.backbone(x)
 
-    def forward(self, x, test=False):
+    def forward(self, x, test=False, prev_model=False):
         out = dict()
         if test == False:
-            features = self.backbone.forward(x, False)
+            features = self.backbone.forward(x, test=False, prev_model=prev_model)
             proj_features = self.head(features)
         else:
-            features = self.backbone.forward(x, True, use_init_ptm=self.use_init_ptm)
+            features = self.backbone.forward(x, test=True, use_init_ptm=self.use_init_ptm)
             proj_features = None
 
         out.update({"features": features, "proj_features": proj_features})   
