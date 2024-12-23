@@ -186,6 +186,8 @@ def _train(args):
             print('Accuracy Matrix (NME):')
             print(np_acctable)
         logging.info('Forgetting (NME): {}'.format(forgetting))
+    
+    torch.save(model._network, "./trained_models/{}_inc{}_e{}-{}_s{}.pth".format(args["model_name"], args["increment"], args["init_epochs"], args["later_epochs"], args["seed"]))
 
     wandb.finish()
 
