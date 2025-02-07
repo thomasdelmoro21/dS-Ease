@@ -316,7 +316,7 @@ class Learner(BaseLearner):
                 proj_features = torch.cat([proj_f1.unsqueeze(1), proj_f2.unsqueeze(1)], dim=1)
                 #supcon_loss = self.supcon_loss(proj_features, labels=targets)
                 logit_scale = 1 / 0.07
-                supcon_loss = self.stable_rep(proj_f1, proj_f2, targets, logit_scale)
+                supcon_loss = self.stable_rep(proj_f1, proj_f2, targets, logit_scale)  # Stable Rep
 
                 # Distillation Loss
                 loss_d = self.relation_distillation_loss(features, data=aug_data, current_task_id=self._cur_task)

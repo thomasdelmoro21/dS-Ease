@@ -3,6 +3,25 @@ import argparse
 import os
 from trainer import train
 
+'''
+Installation with Conda:
+
+conda create -n psrd_ease python=3.10
+conda activate psrd_ease
+conda install pytorch torchvision torchaudio pytorch-cuda=11.8 -c pytorch -c nvidia
+conda install pip
+pip install -r requirements.txt
+
+RUN ON IMAGENET-R:
+python main.py --model psrd_ease_inr
+
+RUN ON IMAGENET-A:
+python main.py --model psrd_ease_ina
+
+To change device and hyperparameters:
+navigate to /exps/psrd_ease_inr.json or /exps/psrd_ease_ina.json
+'''
+
 def main():
     args = setup_parser().parse_args()
     param = load_json(os.path.join("./exps", args.model + ".json"))
