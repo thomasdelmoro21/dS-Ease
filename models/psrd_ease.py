@@ -168,6 +168,40 @@ class Learner(BaseLearner):
 
         return loss
 
+
+    def stable_rep(self, out0, out1, labels, logit_scale):
+        device = out0.device
+
+        # compute the mask based on labels
+        mask = torch.eq(labels.view(-1, 1),
+                        labels.contiguous().view(1, -1)).float().to(device)
+        logits_mask = torch.ones_like(mask) - torch.eye(mask.shape[0], device=device)
+        mask = mask * logits_mask
+
+        # compute logits
+        logits = torch.matmul(out0, out1.T) * logit_scale
+        logits = logits - (1 - logits_mask) * 1e9
+
+        # optional: minus the largest logit to stabilize logits
+        logits = self.stablize_logits(logits)
+
+        # compute ground-truth distribution
+        p = mask / mask.sum(1, keepdim=True).clamp(min=1.0)
+        loss = self.compute_cross_entropy(p, logits)
+
+        return loss
+
+    def compute_cross_entropy(self, p, q):
+        q = F.log_softmax(q, dim=-1)
+        loss = torch.sum(p * q, dim=-1)
+        return - loss.mean()
+
+    def stablize_logits(self, logits):
+        logits_max, _ = torch.max(logits, dim=-1, keepdim=True)
+        logits = logits - logits_max.detach()
+        return logits
+
+
     def incremental_train(self, data_manager):
         self._cur_task += 1
         self._total_classes = self._known_classes + data_manager.get_task_size(self._cur_task)
@@ -280,7 +314,9 @@ class Learner(BaseLearner):
                 proj_features = F.normalize(proj_features, dim=1)
                 proj_f1, proj_f2 = torch.split(proj_features, [bsz, bsz], dim=0)
                 proj_features = torch.cat([proj_f1.unsqueeze(1), proj_f2.unsqueeze(1)], dim=1)
-                supcon_loss = self.supcon_loss(proj_features, labels=targets)
+                #supcon_loss = self.supcon_loss(proj_features, labels=targets)
+                logit_scale = 1 / 0.07
+                supcon_loss = self.stable_rep(proj_f1, proj_f2, targets, logit_scale)
 
                 # Distillation Loss
                 loss_d = self.relation_distillation_loss(features, data=aug_data, current_task_id=self._cur_task)
